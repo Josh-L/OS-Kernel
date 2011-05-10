@@ -7,12 +7,19 @@
 #include "rtx_inc.h"
 #include "memory.h"
 
+UINT32 gp_mem_pool_stack[NUM_MEM_BLKS];
+UINT8 g_mem_pool_stack_index;
+
 /**
  * @brief memory management initialization routine
  */
 void init_memory()
 {
-    /* Add your own code here */
+    for (int i = 0; i < NUM_MEM_BLKS; i++)
+    {
+        gp_mem_pool_stack[i] = MEM_POOL_TOP + (i*MEM_BLK_SIZE);
+    }
+    g_mem_pool_stack_index = 0;
 }
 
 /**
@@ -23,10 +30,15 @@ void init_memory()
 
 void* s_request_memory_block()
 {
-    /* Add your own code here */
-
-    /* replace NULL with a non-zero memory address */
-    return NULL; 
+    if((g_mem_pool_stack_index > NUM_MEM_BLKS - 1) && (g_mem_pool_stack_index < 0))
+    {
+        return NULL;
+    }
+    else
+    {
+        return gp_mem_pool_stack[g_mem_pool_stack_index++];
+    }
+    
 }
 
 /**
@@ -36,10 +48,13 @@ void* s_request_memory_block()
 
 int s_release_memory_block( void* memory_block )
 {
-    /* Add your own code here */
-
-
-    /* add code to return non-zero if releasing memory block fails */
-
-    return 0; // 0 on success
+    if((g_mem_pool_stack_index > NUM_MEM_BLKS - 1) && (g_mem_pool_stack_index < 1))
+    {
+        return -1;
+    }
+    else
+    {
+        --g_mem_pool_stack_index;
+        return 0;
+    }
 }
