@@ -1,8 +1,5 @@
 /*
- * MCF5307 CJDesign linker script, modified by 
- * David Grant
- * Thomas Reidemeister 
- * Irene Huang
+ * MCF5307 CJDesign linker script, modified by David Grant
  */
  
 OUTPUT_ARCH(m68k)
@@ -16,7 +13,7 @@ __DYNAMIC  =  0;
  * stack grows down from high memory.
  *
  * The memory map look like this:
- * +--------------------+ <- low memory 0x10100000
+ * +--------------------+ <- low memory
  * | .text              |
  * |        _etext      |
  * |        ctor list   | the ctor and dtor lists are for
@@ -38,10 +35,10 @@ __DYNAMIC  =  0;
 MEMORY
 {
 	/* DG: ram actually starts at 0x1000000, but the vector table usually
-     * IH: rtx starts at 0x10100000 and does not exceed 1M
-	 *     rtx loader starts at 0x10200000  
-     */
-  ram     : ORIGIN = 0x10100000, LENGTH = 1M
+	 *  sits at 0x10000000, and JanusROM uses the first
+	 *  1M-ish to hold a copy of itself, which it executes out of
+	 *  ram, not out of the flash (rom), so let's stay out of there. */
+  ram     : ORIGIN = 0x10100000, LENGTH = 31M
 }
 
 /*
@@ -120,22 +117,5 @@ SECTIONS
   .stabstr 0 (NOLOAD) :
   {
     *(.stabstr)
-  }
-
-  __REGISTER_RTX__ 0x10300000:
-  {
-    __REGISTER_RTX_ENTRY__ = ABSOLUTE(.) ;
-    *(__REGISTER_RTX__);
-  }
-
-  /* see rtx_test.ld for reference */
-  __REGISTER_TEST_PROCS_ENTRY__ = 0x10380000 ;
-
-  __RTX_TEST_CODE_ENTRY__ = 0x10400000;
-
-  /* shared test data goes here */
-  __RTX_TEST_DATA__ 0x10500000:
-  {
-      *(__RTX_TEST_DATA__)
   }
 }

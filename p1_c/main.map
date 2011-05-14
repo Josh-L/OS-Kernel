@@ -1,0 +1,122 @@
+
+Allocating common symbols
+Common symbol       size              file
+
+gp_mem_pool_list    0x80              memory.o
+old_stack           0x4               /tmp/ccDvk1C9.o
+gp_mem_pool_lookup  0x80              memory.o
+main_stack          0x1000            /tmp/ccDvk1C9.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+ram              0x10100000         0x00100000
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD /tmp/ccDvk1C9.o
+LOAD dbug.o
+LOAD memory.o
+LOAD main.o
+START GROUP
+LOAD /opt/gcc-coldfire/bin/../lib/gcc/m68k-elf/4.3.2/m5307/libgcc.a
+END GROUP
+                0x00000000                __DYNAMIC = 0x0
+                0x00000000                PROVIDE (hardware_init_hook, 0x0)
+                0x00000000                PROVIDE (_hardware_init_hook, 0x0)
+                0x00000000                PROVIDE (software_init_hook, 0x0)
+                0x00000000                PROVIDE (_software_init_hook, 0x0)
+
+.text           0x10100000      0x3b6
+ *(.text)
+ .text          0x10100000       0x1e /tmp/ccDvk1C9.o
+ *fill*         0x1010001e        0x2 00
+ .text          0x10100020       0x9a dbug.o
+                0x10100040                rtx_dbug_outs
+                0x10100020                rtx_dbug_out_char
+ *fill*         0x101000ba        0x2 00
+ .text          0x101000bc      0x13e memory.o
+                0x10100192                s_release_memory_block
+                0x101000bc                init_memory
+                0x10100122                s_request_memory_block
+ *fill*         0x101001fa        0x2 00
+ .text          0x101001fc      0x100 main.o
+                0x101001fc                __main
+                0x10100206                main
+                0x101002fc                . = ALIGN (0x4)
+                0x101002fc                __CTOR_LIST__ = .
+                0x101002fc        0x4 LONG 0x0 (((__CTOR_END__ - __CTOR_LIST__) / 0x4) - 0x2)
+ *(.ctors)
+                0x10100300        0x4 LONG 0x0
+                0x10100304                __CTOR_END__ = .
+                0x10100304                __DTOR_LIST__ = .
+                0x10100304        0x4 LONG 0x0 (((__DTOR_END__ - __DTOR_LIST__) / 0x4) - 0x2)
+ *(.dtors)
+                0x10100308        0x4 LONG 0x0
+                0x1010030c                __DTOR_END__ = .
+ *(.rodata*)
+ .rodata        0x1010030c       0x9a main.o
+ *(.gcc_except_table)
+                0x101003a6                __INIT_SECTION__ = .
+                0x101003a6        0x4 LONG 0x4e560000
+ *(.init)
+                0x101003aa        0x2 SHORT 0x4e5e
+                0x101003ac        0x2 SHORT 0x4e75
+                0x101003ae                __FINI_SECTION__ = .
+                0x101003ae        0x4 LONG 0x4e560000
+ *(.fini)
+                0x101003b2        0x2 SHORT 0x4e5e
+                0x101003b4        0x2 SHORT 0x4e75
+                0x101003b6                _etext = .
+ *(.lit)
+
+.data           0x101003b8        0x0
+ *(.shdata)
+ *(.data)
+ .data          0x101003b8        0x0 /tmp/ccDvk1C9.o
+ .data          0x101003b8        0x0 dbug.o
+ .data          0x101003b8        0x0 memory.o
+ .data          0x101003b8        0x0 main.o
+                0x101003b8                _edata = .
+
+.bss            0x101003b8     0x1118
+                0x101003b8                __bss_start = .
+ *(.shbss)
+ *(.bss)
+ .bss           0x101003b8        0x0 /tmp/ccDvk1C9.o
+ .bss           0x101003b8        0x0 dbug.o
+ .bss           0x101003b8        0x0 memory.o
+ .bss           0x101003b8        0x0 main.o
+ *(COMMON)
+ *fill*         0x101003b8        0x8 00
+ COMMON         0x101003c0     0x1010 /tmp/ccDvk1C9.o
+                0x101003c0                old_stack
+                0x101003d0                main_stack
+ COMMON         0x101013d0      0x100 memory.o
+                0x101013d0                gp_mem_pool_list
+                0x10101450                gp_mem_pool_lookup
+                0x101014d0                _end = ALIGN (0x8)
+                0x101014d0                __end = _end
+
+.stab
+ *(.stab)
+
+.stabstr
+ *(.stabstr)
+
+__REGISTER_RTX__
+                0x10300000        0x0
+                0x10300000                __REGISTER_RTX_ENTRY__ = <code 345> (.)
+ *(__REGISTER_RTX__)
+                0x10380000                __REGISTER_TEST_PROCS_ENTRY__ = 0x10380000
+                0x10400000                __RTX_TEST_CODE_ENTRY__ = 0x10400000
+
+__RTX_TEST_DATA__
+ *(__RTX_TEST_DATA__)
+OUTPUT(main.bin elf32-m68k)
+
+.comment        0x00000000       0x75
+ .comment       0x00000000       0x27 dbug.o
+ .comment       0x00000027       0x27 memory.o
+ .comment       0x0000004e       0x27 main.o

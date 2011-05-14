@@ -1,0 +1,1 @@
+m68k-elf-gcc -Wall -m5307 -pipe -nostdlib   -c -o main.o main.c

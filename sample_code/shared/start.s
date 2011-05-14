@@ -1,5 +1,4 @@
 
-
 	/* Allocate space for new stack and old stack pointer */
 	.comm old_stack,4
 	.comm main_stack,4096

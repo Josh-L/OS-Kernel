@@ -37,9 +37,9 @@ __DYNAMIC  =  0;
  */
 MEMORY
 {
-	/* DG: ram actually starts at 0x1000000, but the vector table usually
+    /* DG: ram actually starts at 0x1000000, but the vector table usually
      * IH: rtx starts at 0x10100000 and does not exceed 1M
-	 *     rtx loader starts at 0x10200000  
+     *     rtx loader starts at 0x10200000  
      */
   ram     : ORIGIN = 0x10100000, LENGTH = 1M
 }
@@ -80,16 +80,16 @@ SECTIONS
     *(.gcc_except_table) 
 
     __INIT_SECTION__ = . ;
-    LONG (0x4e560000)	/* linkw %fp,#0 */
+    LONG (0x4e560000)   /* linkw %fp,#0 */
     *(.init)
-    SHORT (0x4e5e)	/* unlk %fp */
-    SHORT (0x4e75)	/* rts */
+    SHORT (0x4e5e)  /* unlk %fp */
+    SHORT (0x4e75)  /* rts */
 
     __FINI_SECTION__ = . ;
-    LONG (0x4e560000)	/* linkw %fp,#0 */
+    LONG (0x4e560000)   /* linkw %fp,#0 */
     *(.fini)
-    SHORT (0x4e5e)	/* unlk %fp */
-    SHORT (0x4e75)	/* rts */
+    SHORT (0x4e5e)  /* unlk %fp */
+    SHORT (0x4e75)  /* rts */
 
     _etext = .;
     *(.lit)
