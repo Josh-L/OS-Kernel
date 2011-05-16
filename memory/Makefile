@@ -11,7 +11,7 @@ AS=m68k-elf-as
 AR=m68k-elf-ar
 ARFLAGS=
 OBJCPY=m68k-elf-objcopy
-ASM=./start.s ./timer_entry.s ./timer_output_char.s
+ASM=./start.s
 LDFLAGS = -Trtx.ld -Wl,-Map=main.map
 
 OBJS=dbug.o memory.o main.o

@@ -55,6 +55,7 @@ int s_release_memory_block( void* memory_block )
 	{
 		if (gp_mem_pool_list[i] == (UINT32)memory_block && gp_mem_pool_lookup[i] == 1)
 		{
+			gp_mem_pool_lookup[i] = 0;
 			return RTX_SUCCESS;
 		}
 	}

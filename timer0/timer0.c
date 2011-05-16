@@ -9,6 +9,8 @@ UINT8 g_hours = 23;
 UINT8 g_minutes = 59;
 UINT8 g_seconds = 50;
 CHAR g_output_buffer[] = "\r23:59:50";
+CHAR g_output_buffer_snapshot[] = "\r23:59:50";
+UINT8 g_out_char = 0;
 
 /*
  * gcc expects this function to exist
@@ -18,32 +20,18 @@ int __main( void )
     return 0;
 }
 
-VOID uart1_print_char( CHAR c )
+VOID uart1_out_char( VOID )
 {
-    /*
-	* Acknowledge the interrupt
-	SERIAL1_UCSR is called USR for reading, UCSR for writing
-	*/
-    
-	/* See if port is ready to accept data */
-    while ((SERIAL1_UCSR & 4) == 0);
-    SERIAL1_WD = c;
-}
-
-SINT32 uart1_print_chars( CHAR* s )
-{
-	if ( s == NULL )
-	{
-		return RTX_ERROR;
-	}
-	else
-	{
-		while ( *s != '\0' )
-		{
-			uart1_print_char( *s++ );
-		}
-	}
-    return RTX_SUCCESS;
+    SERIAL1_WD = g_output_buffer_snapshot[g_out_char];
+    if(g_out_char >= 9)
+    {
+        g_out_char = 0;
+        SERIAL1_IMR = 0x02;
+    }
+    else
+    {
+        g_out_char++;
+    }
 }
 
 /*
@@ -52,9 +40,9 @@ SINT32 uart1_print_chars( CHAR* s )
 VOID c_timer_handler( VOID )
 {
     Counter++;
-    if (Counter >= 100)
+    if (Counter >= 1)
     {
-        Counter = Counter - 100;
+        Counter = 0;
         g_seconds++;
         if (g_seconds >= 60)
         {
@@ -82,7 +70,13 @@ VOID c_timer_handler( VOID )
         g_output_buffer[2] = (BYTE)(s + 0x30);
         g_output_buffer[1] = (BYTE)(((g_hours - s)/0xa) + 0x30);
         
-        uart1_print_chars(g_output_buffer);
+        //Take snapshot of output buffer
+        UINT8 i;
+        for(i = 0; i < 10; i++)
+        {
+            g_output_buffer_snapshot[i] = g_output_buffer[i];
+        }
+        SERIAL1_IMR = 0x01;
     }
     
     TIMER0_TER = 2;
@@ -132,12 +126,34 @@ int main( void )
     /*
      * Set the reference counts, ~10ms
      */
-    TIMER0_TRR = 1758;
+    TIMER0_TRR = 0xFFFF;
 
     /*
      * Setup the timer prescaler and stuff
      */
-    TIMER0_TMR = 0xFF1B;
+    TIMER0_TMR = 0x2A1D;
+    
+    /*
+	* Store the timer output ISR at user vector #64
+	*/
+    asm( "move.l #asm_timer_output_char,%d0" );
+    asm( "move.l %d0,0x10000100" );
+    /* Reset the entire UART */
+    SERIAL1_UCR = 0x10;
+    /* Reset the receiver */
+    SERIAL1_UCR = 0x20;
+    /* Reset the transmitter */
+    SERIAL1_UCR = 0x30;
+    /* Reset the error condition */
+    SERIAL1_UCR = 0x40;
+    /* Install the interupt */
+    SERIAL1_ICR = 0x17;
+    SERIAL1_IVR = 64;
+    /* enable interrupts on tx only */
+    SERIAL1_IMR = 0x01;
+	
+    /* Setup for transmit only */
+    SERIAL1_UCR = 0x06;
     
     /*
      * Set the interupt mask
@@ -149,12 +165,6 @@ int main( void )
     /* Enable all interupts */
     asm( "move.w #0x2000,%sr" );
     
-    uart1_print_chars(g_output_buffer);
-    
-    /* Let the timer interrupt fire, lower running priority */
-    asm( "move.w #0x2000,%sr" );
-    
-    Counter = 0;
     while(TRUE);
     return 0;
 }

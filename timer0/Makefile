@@ -12,18 +12,16 @@ AR=m68k-elf-ar
 ARFLAGS=
 OBJCPY=m68k-elf-objcopy
 ASM=./start.s ./timer_entry.s ./timer_output_char.s
-LDFLAGS = -Trtx.ld -Wl,-Map=main.map
+LDFLAGS = -Trtx.ld -Wl,-Map=timer0.map
 
-OBJS=dbug.o memory.o main.o
+OBJS=dbug.o timer0.o
 
 # Note, GCC builds things in order, it's important to put yhe
 #  ASM first, so that it is located at the beginning of our program.
-main.s19: $(OBJS) 
-	$(CC) $(CFLAGS) $(LDFLAGS) -o main.bin $(ASM) $(OBJS) 
-	$(OBJCPY) --output-format=srec main.bin main.s19
+timer0.s19: $(OBJS) 
+	$(CC) $(CFLAGS) $(LDFLAGS) -o timer0.bin $(ASM) $(OBJS) 
+	$(OBJCPY) --output-format=srec timer0.bin timer0.s19
 
-memory.o: memory.c memory.h
-	$(CC) $(CFLAGS) -c memory.c
 
 dbug.o: dbug.c dbug.h
 	$(CC) $(CFLAGS) -c dbug.c

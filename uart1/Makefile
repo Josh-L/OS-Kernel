@@ -11,19 +11,16 @@ AS=m68k-elf-as
 AR=m68k-elf-ar
 ARFLAGS=
 OBJCPY=m68k-elf-objcopy
-ASM=./start.s ./timer_entry.s ./timer_output_char.s
-LDFLAGS = -Trtx.ld -Wl,-Map=main.map
+ASM=./start.s ./serial_entry.s
+LDFLAGS = -Trtx.ld -Wl,-Map=uart1.map
 
-OBJS=dbug.o memory.o main.o
+OBJS=dbug.o uart1.o
 
 # Note, GCC builds things in order, it's important to put yhe
 #  ASM first, so that it is located at the beginning of our program.
-main.s19: $(OBJS) 
-	$(CC) $(CFLAGS) $(LDFLAGS) -o main.bin $(ASM) $(OBJS) 
-	$(OBJCPY) --output-format=srec main.bin main.s19
-
-memory.o: memory.c memory.h
-	$(CC) $(CFLAGS) -c memory.c
+uart1.s19: $(OBJS) 
+	$(CC) $(CFLAGS) $(LDFLAGS) -o uart1.bin $(ASM) $(OBJS) 
+	$(OBJCPY) --output-format=srec uart1.bin uart1.s19
 
 dbug.o: dbug.c dbug.h
 	$(CC) $(CFLAGS) -c dbug.c

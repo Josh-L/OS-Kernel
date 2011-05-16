@@ -3,9 +3,9 @@ Allocating common symbols
 Common symbol       size              file
 
 gp_mem_pool_list    0x80              memory.o
-old_stack           0x4               /tmp/ccDvk1C9.o
+old_stack           0x4               /tmp/ccpkxAj9.o
 gp_mem_pool_lookup  0x80              memory.o
-main_stack          0x1000            /tmp/ccDvk1C9.o
+main_stack          0x1000            /tmp/ccpkxAj9.o
 
 Memory Configuration
 
@@ -15,7 +15,9 @@ ram              0x10100000         0x00100000
 
 Linker script and memory map
 
-LOAD /tmp/ccDvk1C9.o
+LOAD /tmp/ccpkxAj9.o
+LOAD /tmp/ccy50928.o
+LOAD /tmp/ccJd6uIb.o
 LOAD dbug.o
 LOAD memory.o
 LOAD main.o
@@ -28,76 +30,93 @@ END GROUP
                 0x00000000                PROVIDE (software_init_hook, 0x0)
                 0x00000000                PROVIDE (_software_init_hook, 0x0)
 
-.text           0x10100000      0x3b6
+.text           0x10100000      0x64c
  *(.text)
- .text          0x10100000       0x1e /tmp/ccDvk1C9.o
+ .text          0x10100000       0x1e /tmp/ccpkxAj9.o
  *fill*         0x1010001e        0x2 00
- .text          0x10100020       0x9a dbug.o
-                0x10100040                rtx_dbug_outs
-                0x10100020                rtx_dbug_out_char
- *fill*         0x101000ba        0x2 00
- .text          0x101000bc      0x13e memory.o
-                0x10100192                s_release_memory_block
-                0x101000bc                init_memory
-                0x10100122                s_request_memory_block
- *fill*         0x101001fa        0x2 00
- .text          0x101001fc      0x100 main.o
-                0x101001fc                __main
-                0x10100206                main
-                0x101002fc                . = ALIGN (0x4)
-                0x101002fc                __CTOR_LIST__ = .
-                0x101002fc        0x4 LONG 0x0 (((__CTOR_END__ - __CTOR_LIST__) / 0x4) - 0x2)
+ .text          0x10100020       0x44 /tmp/ccy50928.o
+                0x10100020                asm_timer_entry
+ .text          0x10100064       0x44 /tmp/ccJd6uIb.o
+                0x10100064                asm_timer_output_char
+ .text          0x101000a8       0x9a dbug.o
+                0x101000c8                rtx_dbug_outs
+                0x101000a8                rtx_dbug_out_char
+ *fill*         0x10100142        0x2 00
+ .text          0x10100144      0x150 memory.o
+                0x1010021a                s_release_memory_block
+                0x10100144                init_memory
+                0x101001aa                s_request_memory_block
+ .text          0x10100294      0x396 main.o
+                0x10100294                __main
+                0x1010055c                coldfire_vbr_init
+                0x101002fe                c_timer_handler
+                0x1010029e                uart1_out_char
+                0x10100574                main
+                0x1010062c                . = ALIGN (0x4)
+ *fill*         0x1010062a        0x2 00
+                0x1010062c                __CTOR_LIST__ = .
+                0x1010062c        0x4 LONG 0x0 (((__CTOR_END__ - __CTOR_LIST__) / 0x4) - 0x2)
  *(.ctors)
-                0x10100300        0x4 LONG 0x0
-                0x10100304                __CTOR_END__ = .
-                0x10100304                __DTOR_LIST__ = .
-                0x10100304        0x4 LONG 0x0 (((__DTOR_END__ - __DTOR_LIST__) / 0x4) - 0x2)
+                0x10100630        0x4 LONG 0x0
+                0x10100634                __CTOR_END__ = .
+                0x10100634                __DTOR_LIST__ = .
+                0x10100634        0x4 LONG 0x0 (((__DTOR_END__ - __DTOR_LIST__) / 0x4) - 0x2)
  *(.dtors)
-                0x10100308        0x4 LONG 0x0
-                0x1010030c                __DTOR_END__ = .
+                0x10100638        0x4 LONG 0x0
+                0x1010063c                __DTOR_END__ = .
  *(.rodata*)
- .rodata        0x1010030c       0x9a main.o
  *(.gcc_except_table)
-                0x101003a6                __INIT_SECTION__ = .
-                0x101003a6        0x4 LONG 0x4e560000
+                0x1010063c                __INIT_SECTION__ = .
+                0x1010063c        0x4 LONG 0x4e560000
  *(.init)
-                0x101003aa        0x2 SHORT 0x4e5e
-                0x101003ac        0x2 SHORT 0x4e75
-                0x101003ae                __FINI_SECTION__ = .
-                0x101003ae        0x4 LONG 0x4e560000
+                0x10100640        0x2 SHORT 0x4e5e
+                0x10100642        0x2 SHORT 0x4e75
+                0x10100644                __FINI_SECTION__ = .
+                0x10100644        0x4 LONG 0x4e560000
  *(.fini)
-                0x101003b2        0x2 SHORT 0x4e5e
-                0x101003b4        0x2 SHORT 0x4e75
-                0x101003b6                _etext = .
+                0x10100648        0x2 SHORT 0x4e5e
+                0x1010064a        0x2 SHORT 0x4e75
+                0x1010064c                _etext = .
  *(.lit)
 
-.data           0x101003b8        0x0
+.data           0x1010064c       0x17
  *(.shdata)
  *(.data)
- .data          0x101003b8        0x0 /tmp/ccDvk1C9.o
- .data          0x101003b8        0x0 dbug.o
- .data          0x101003b8        0x0 memory.o
- .data          0x101003b8        0x0 main.o
-                0x101003b8                _edata = .
+ .data          0x1010064c        0x0 /tmp/ccpkxAj9.o
+ .data          0x1010064c        0x0 /tmp/ccy50928.o
+ .data          0x1010064c        0x0 /tmp/ccJd6uIb.o
+ .data          0x1010064c        0x0 dbug.o
+ .data          0x1010064c        0x0 memory.o
+ .data          0x1010064c       0x17 main.o
+                0x1010064f                g_output_buffer
+                0x1010064d                g_minutes
+                0x10100659                g_output_buffer_snapshot
+                0x1010064e                g_seconds
+                0x1010064c                g_hours
+                0x10100663                _edata = .
 
-.bss            0x101003b8     0x1118
-                0x101003b8                __bss_start = .
+.bss            0x10100664     0x111c
+                0x10100664                __bss_start = .
  *(.shbss)
  *(.bss)
- .bss           0x101003b8        0x0 /tmp/ccDvk1C9.o
- .bss           0x101003b8        0x0 dbug.o
- .bss           0x101003b8        0x0 memory.o
- .bss           0x101003b8        0x0 main.o
+ .bss           0x10100664        0x0 /tmp/ccpkxAj9.o
+ .bss           0x10100664        0x0 /tmp/ccy50928.o
+ .bss           0x10100664        0x0 /tmp/ccJd6uIb.o
+ .bss           0x10100664        0x0 dbug.o
+ .bss           0x10100664        0x0 memory.o
+ .bss           0x10100664        0x5 main.o
+                0x10100668                g_out_char
+                0x10100664                Counter
  *(COMMON)
- *fill*         0x101003b8        0x8 00
- COMMON         0x101003c0     0x1010 /tmp/ccDvk1C9.o
-                0x101003c0                old_stack
-                0x101003d0                main_stack
- COMMON         0x101013d0      0x100 memory.o
-                0x101013d0                gp_mem_pool_list
-                0x10101450                gp_mem_pool_lookup
-                0x101014d0                _end = ALIGN (0x8)
-                0x101014d0                __end = _end
+ *fill*         0x10100669        0x7 00
+ COMMON         0x10100670     0x1010 /tmp/ccpkxAj9.o
+                0x10100670                old_stack
+                0x10100680                main_stack
+ COMMON         0x10101680      0x100 memory.o
+                0x10101680                gp_mem_pool_list
+                0x10101700                gp_mem_pool_lookup
+                0x10101780                _end = ALIGN (0x8)
+                0x10101780                __end = _end
 
 .stab
  *(.stab)
