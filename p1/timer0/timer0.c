@@ -124,7 +124,7 @@ int main( void )
     TIMER0_ICR = 0x9B;
 
     /*
-     * Set the reference counts, ~10ms
+     * Set the reference counts, ~1s
      */
     TIMER0_TRR = 0xFFFF;
 
