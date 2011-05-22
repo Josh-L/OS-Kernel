@@ -1,7 +1,5 @@
-// Function signature for header file
-VOID printHexAddress(UINT32 hexAddress);
+#include "printHexAddress.h"
 
-// Actual function
 VOID printHexAddress(UINT32 hexAddress)
 {
 	/***************************************************************

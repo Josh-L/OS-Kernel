@@ -14,6 +14,7 @@
 #include "rtx_inc.h"
 #include "dbug.h"
 #include "memory.h"
+#include "../Hex_to_ASCII.h"
 
 #define NUM_MEM_BLKS 32
 
@@ -33,6 +34,9 @@ int main( VOID )
     for ( i=0; i< NUM_MEM_BLKS; i++ ) 
     {
         p_mem_array[i] = s_request_memory_block();
+        rtx_dbug_outs("Requested Memory block address:");
+        printHexAddress(p_mem_array[i]);
+        rtx_dbug_outs("\r\n");
         if (p_mem_array[i] == NULL) {
             rtx_dbug_outs((CHAR *) "Null pointer.\r\n");
         } else if (p_mem_array[i] > 0x10200000) {
