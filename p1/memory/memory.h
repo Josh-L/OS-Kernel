@@ -5,7 +5,7 @@
 */
 
 extern BYTE __end;
-#define MEM_POOL_TOP __end
+#define MEM_POOL_TOP &__end
 #define MEM_BLK_SIZE 128
 #define NUM_MEM_BLKS 32
 

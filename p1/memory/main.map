@@ -3,9 +3,9 @@ Allocating common symbols
 Common symbol       size              file
 
 gp_mem_pool_list    0x80              memory.o
-old_stack           0x4               /tmp/cc2vFlTY.o
+old_stack           0x4               /tmp/ccJzBR16.o
 gp_mem_pool_lookup  0x80              memory.o
-main_stack          0x1000            /tmp/cc2vFlTY.o
+main_stack          0x1000            /tmp/ccJzBR16.o
 
 Memory Configuration
 
@@ -15,8 +15,9 @@ ram              0x10100000         0x00100000
 
 Linker script and memory map
 
-LOAD /tmp/cc2vFlTY.o
+LOAD /tmp/ccJzBR16.o
 LOAD dbug.o
+LOAD Hex_to_ASCII.o
 LOAD memory.o
 LOAD main.o
 START GROUP
@@ -28,75 +29,82 @@ END GROUP
                 0x00000000                PROVIDE (software_init_hook, 0x0)
                 0x00000000                PROVIDE (_software_init_hook, 0x0)
 
-.text           0x10100000      0x3c7
+.text           0x10100000      0x549
  *(.text)
- .text          0x10100000       0x1e /tmp/cc2vFlTY.o
+ .text          0x10100000       0x1e /tmp/ccJzBR16.o
  *fill*         0x1010001e        0x2 00
  .text          0x10100020       0x9a dbug.o
                 0x10100040                rtx_dbug_outs
                 0x10100020                rtx_dbug_out_char
  *fill*         0x101000ba        0x2 00
- .text          0x101000bc      0x150 memory.o
-                0x10100192                s_release_memory_block
-                0x101000bc                init_memory
-                0x10100122                s_request_memory_block
- .text          0x1010020c      0x100 main.o
-                0x1010020c                __main
-                0x10100216                main
-                0x1010030c                . = ALIGN (0x4)
-                0x1010030c                __CTOR_LIST__ = .
-                0x1010030c        0x4 LONG 0x0 (((__CTOR_END__ - __CTOR_LIST__) / 0x4) - 0x2)
+ .text          0x101000bc      0x126 Hex_to_ASCII.o
+                0x101000bc                printHexAddress
+ *fill*         0x101001e2        0x2 00
+ .text          0x101001e4      0x14a memory.o
+                0x101002b4                s_release_memory_block
+                0x101001e4                init_memory
+                0x10100244                s_request_memory_block
+ *fill*         0x1010032e        0x2 00
+ .text          0x10100330      0x138 main.o
+                0x10100330                __main
+                0x1010033a                main
+                0x10100468                . = ALIGN (0x4)
+                0x10100468                __CTOR_LIST__ = .
+                0x10100468        0x4 LONG 0x0 (((__CTOR_END__ - __CTOR_LIST__) / 0x4) - 0x2)
  *(.ctors)
-                0x10100310        0x4 LONG 0x0
-                0x10100314                __CTOR_END__ = .
-                0x10100314                __DTOR_LIST__ = .
-                0x10100314        0x4 LONG 0x0 (((__DTOR_END__ - __DTOR_LIST__) / 0x4) - 0x2)
+                0x1010046c        0x4 LONG 0x0
+                0x10100470                __CTOR_END__ = .
+                0x10100470                __DTOR_LIST__ = .
+                0x10100470        0x4 LONG 0x0 (((__DTOR_END__ - __DTOR_LIST__) / 0x4) - 0x2)
  *(.dtors)
-                0x10100318        0x4 LONG 0x0
-                0x1010031c                __DTOR_END__ = .
+                0x10100474        0x4 LONG 0x0
+                0x10100478                __DTOR_END__ = .
  *(.rodata*)
- .rodata        0x1010031c       0x9b main.o
+ .rodata        0x10100478        0x3 Hex_to_ASCII.o
+ .rodata        0x1010047b       0xbe main.o
  *(.gcc_except_table)
-                0x101003b7                __INIT_SECTION__ = .
-                0x101003b7        0x4 LONG 0x4e560000
+                0x10100539                __INIT_SECTION__ = .
+                0x10100539        0x4 LONG 0x4e560000
  *(.init)
-                0x101003bb        0x2 SHORT 0x4e5e
-                0x101003bd        0x2 SHORT 0x4e75
-                0x101003bf                __FINI_SECTION__ = .
-                0x101003bf        0x4 LONG 0x4e560000
+                0x1010053d        0x2 SHORT 0x4e5e
+                0x1010053f        0x2 SHORT 0x4e75
+                0x10100541                __FINI_SECTION__ = .
+                0x10100541        0x4 LONG 0x4e560000
  *(.fini)
-                0x101003c3        0x2 SHORT 0x4e5e
-                0x101003c5        0x2 SHORT 0x4e75
-                0x101003c7                _etext = .
+                0x10100545        0x2 SHORT 0x4e5e
+                0x10100547        0x2 SHORT 0x4e75
+                0x10100549                _etext = .
  *(.lit)
 
-.data           0x101003c8        0x0
+.data           0x1010054c        0x0
  *(.shdata)
  *(.data)
- .data          0x101003c8        0x0 /tmp/cc2vFlTY.o
- .data          0x101003c8        0x0 dbug.o
- .data          0x101003c8        0x0 memory.o
- .data          0x101003c8        0x0 main.o
-                0x101003c8                _edata = .
+ .data          0x1010054c        0x0 /tmp/ccJzBR16.o
+ .data          0x1010054c        0x0 dbug.o
+ .data          0x1010054c        0x0 Hex_to_ASCII.o
+ .data          0x1010054c        0x0 memory.o
+ .data          0x1010054c        0x0 main.o
+                0x1010054c                _edata = .
 
-.bss            0x101003c8     0x1118
-                0x101003c8                __bss_start = .
+.bss            0x1010054c     0x1114
+                0x1010054c                __bss_start = .
  *(.shbss)
  *(.bss)
- .bss           0x101003c8        0x0 /tmp/cc2vFlTY.o
- .bss           0x101003c8        0x0 dbug.o
- .bss           0x101003c8        0x0 memory.o
- .bss           0x101003c8        0x0 main.o
+ .bss           0x1010054c        0x0 /tmp/ccJzBR16.o
+ .bss           0x1010054c        0x0 dbug.o
+ .bss           0x1010054c        0x0 Hex_to_ASCII.o
+ .bss           0x1010054c        0x0 memory.o
+ .bss           0x1010054c        0x0 main.o
  *(COMMON)
- *fill*         0x101003c8        0x8 00
- COMMON         0x101003d0     0x1010 /tmp/cc2vFlTY.o
-                0x101003d0                old_stack
-                0x101003e0                main_stack
- COMMON         0x101013e0      0x100 memory.o
-                0x101013e0                gp_mem_pool_list
-                0x10101460                gp_mem_pool_lookup
-                0x101014e0                _end = ALIGN (0x8)
-                0x101014e0                __end = _end
+ *fill*         0x1010054c        0x4 00
+ COMMON         0x10100550     0x1010 /tmp/ccJzBR16.o
+                0x10100550                old_stack
+                0x10100560                main_stack
+ COMMON         0x10101560      0x100 memory.o
+                0x10101560                gp_mem_pool_list
+                0x101015e0                gp_mem_pool_lookup
+                0x10101660                _end = ALIGN (0x8)
+                0x10101660                __end = _end
 
 .stab
  *(.stab)
@@ -115,7 +123,8 @@ __RTX_TEST_DATA__
  *(__RTX_TEST_DATA__)
 OUTPUT(main.bin elf32-m68k)
 
-.comment        0x00000000       0x75
+.comment        0x00000000       0x9c
  .comment       0x00000000       0x27 dbug.o
- .comment       0x00000027       0x27 memory.o
- .comment       0x0000004e       0x27 main.o
+ .comment       0x00000027       0x27 Hex_to_ASCII.o
+ .comment       0x0000004e       0x27 memory.o
+ .comment       0x00000075       0x27 main.o

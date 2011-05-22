@@ -1,4 +1,5 @@
-#include "printHexAddress.h"
+#include "Hex_to_ASCII.h"
+#include "memory/dbug.h"
 
 VOID printHexAddress(UINT32 hexAddress)
 {
@@ -13,13 +14,13 @@ VOID printHexAddress(UINT32 hexAddress)
 	CHAR ascii = 0x0; // This might work as a UINT8
 
 	// Output the 0x part of the address
-	rtx_dbug_outs("0x");
+	rtx_dbug_outs((CHAR *)"0x");
 
 	UINT8 i = 0;
 	for (i = 0; i < 8; i++)
 	{
 		ascii = hexAddress / divider;
-		hexAddress -= (single * divider)
+		hexAddress -= (ascii * divider);
 		divider /= 0x10;
 		
 		// Now output the ASCII character

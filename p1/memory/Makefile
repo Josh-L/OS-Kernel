@@ -14,7 +14,7 @@ OBJCPY=m68k-elf-objcopy
 ASM=./start.s
 LDFLAGS = -Trtx.ld -Wl,-Map=main.map
 
-OBJS=dbug.o memory.o main.o
+OBJS=dbug.o Hex_to_ASCII.o memory.o main.o
 
 # Note, GCC builds things in order, it's important to put yhe
 #  ASM first, so that it is located at the beginning of our program.
@@ -24,6 +24,9 @@ main.s19: $(OBJS)
 
 memory.o: memory.c memory.h
 	$(CC) $(CFLAGS) -c memory.c
+
+Hex_to_ASCII.o: ../Hex_to_ASCII.c ../Hex_to_ASCII.h
+	$(CC) $(CFLAGS) -c ../Hex_to_ASCII.c
 
 dbug.o: dbug.c dbug.h
 	$(CC) $(CFLAGS) -c dbug.c
