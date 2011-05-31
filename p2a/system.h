@@ -2,16 +2,6 @@
 
 #define PROCESS_STACK_SIZE 64 //Temporary for now, needs to be changed once appropriate value is agreed upon.
 
-//Function prototypes
-void  sys_init();
-int   release_processor();
-int   send_message(int process_ID, void * MessageEnvelope);
-void* receive_message(int * sender_ID);
-int   set_process_priority(int process_ID, int priority);
-int   get_process_priority(int process_ID);
-int   pop(struct s_queue * q, struct s_node * catcher);
-int   push(struct s_queue * q, struct s_node * new_back);
-
 //Structs
 struct s_app_process{
     UINT32  m_process_ID;
@@ -38,6 +28,16 @@ struct s_queue{
     struct s_node *m_front;
     struct s_node *m_back;
 };
+
+//Function prototypes
+void  sys_init();
+int   release_processor();
+int   send_message(int process_ID, void * MessageEnvelope);
+void* receive_message(int * sender_ID);
+int   set_process_priority(int process_ID, int priority);
+int   get_process_priority(int process_ID);
+int   pop(struct s_queue * q, struct s_node * catcher);
+int   push(struct s_queue * q, struct s_node * new_back);
 
 //Function definitions
 void sys_init()
