@@ -1,97 +1,164 @@
 #include "memory/rtx_inc.h"
+#include "dummy_processes.h"
 
-#define PROCESS_STACK_SIZE 64 //Temporary for now, needs to be changed once appropriate value is agreed upon.
+#define PROCESS_STACK_SIZE 1024 //Temporary for now, needs to be changed once appropriate value is agreed upon.
+#define NUM_PROCESSES      6
 
 //Structs
-struct s_app_process{
+struct s_pcb
+{
     UINT32  m_process_ID;
     UINT8   m_priority;
-    UINT32  m_stack[PROCESS_STACK_SIZE];
-    UINT32  m_start_address;
+	UINT8   m_state;                      //0 blocked, 1 ready, 2 running
+    UINT32  m_stack;
+	UINT32  m_a[8];
+	UINT32  m_d[8];
+    VOID    (*m_entry)();
 };
 
-struct s_sys_process{
-    UINT32  m_process_ID;
-    UINT8   m_priority;
-    UINT32  m_stack[PROCESS_STACK_SIZE];
-    UINT32  m_start_address;
-    BOOLEAN m_is_iprocess; //Non-zero indicates that this process is an i-process.
-};
-
-struct s_node{
-    UINT32 *m_data;
+struct s_node
+{
+    struct s_pcb *m_data;
     struct s_node *m_next;
 };
 
-struct s_queue{
+struct s_linked_list
+{
     UINT16 length;
     struct s_node *m_front;
     struct s_node *m_back;
 };
 
+struct pcb           g_null_proc;
+struct s_pcb         g_test_proc_table[NUM_PROCESSES];
+struct s_linked_list g_priority_ready[5];
+
 //Function prototypes
-void  sys_init();
-int   release_processor();
-int   send_message(int process_ID, void * MessageEnvelope);
-void* receive_message(int * sender_ID);
-int   set_process_priority(int process_ID, int priority);
-int   get_process_priority(int process_ID);
-int   pop(struct s_queue * q, struct s_node * catcher);
-int   push(struct s_queue * q, struct s_node * new_back);
+VOID    sys_init();
+SINT8   scheduler();
+SINT8   release_processor();
+SINT8   send_message(UINT8 process_ID, VOID * MessageEnvelope);
+VOID  * receive_message(UINT8 * sender_ID);
+SINT8   set_process_priority(UINT8 process_ID, UINT8 priority);
+SINT8   get_process_priority(UINT8 process_ID);
+SINT8   pop(struct s_linked_list * q, struct s_node * catcher);
+SINT8   push(struct s_linked_list * q, struct s_node * new_back);
+struct s_pcb * find_pid(struct s_linked_list * list, UINT8 pid);
 
 //Function definitions
-void sys_init()
+VOID sys_init()
 {
-    //Initialize process queues, process structs etc. in here
+	UINT8 i = 0;
+	
+    //Priority queues
+	for(i = 0; i < 5; i++)
+	{
+		g_priority_ready[i].length  = 0;
+		g_priority_ready[i].m_front = 0;
+		g_priority_ready[i].m_back  = 0;
+	}
+	
+	//Initialize processes
+	for(i = 0; i < NUM_PROCESSES; i++)
+	{
+		g_test_proc_table[i].m_process_ID = i + 1;
+		g_test_proc_table[i].m_priority   = 3;
+		g_test_proc_table[i].m_stack      = PROCESS_STACK_SIZE;
+		g_test_proc_table[i].m_state	  = 1;
+	}
+	g_test_proc_table[0].m_entry = test_proc_1;
+	g_test_proc_table[1].m_entry = test_proc_2;
+	g_test_proc_table[2].m_entry = test_proc_3;
+	g_test_proc_table[3].m_entry = test_proc_4;
+	g_test_proc_table[4].m_entry = test_proc_5;
+	g_test_proc_table[5].m_entry = test_proc_6;
+	
+	// Set up the null process
+	g_null_proc.m_process_ID = i;
+	g_null_proc.m_priority   = 4;
+	g_null_proc.m_stack      = PROCESS_STACK_SIZE;
+	g_null_proc.m_entry      = null_process;
+
 }
 
-int release_processor()
+SINT8 scheduler()
+{
+	
+	return 0;
+}
+
+SINT8 release_processor()
 {
 
     return 0;
 }
 
-int send_message(int process_ID, void * MessageEnvelope)
+SINT8 send_message(UINT8 process_ID, VOID * MessageEnvelope)
 {
     
     return 0;   
 }
 
-void * receive_message(int * sender_ID)
+VOID * receive_message(UINT8 * sender_ID)
 {
-    return (void*)0;
+    return (VOID*)0;
 }
 
-int set_process_priority(int process_ID, int priority)
+SINT8 set_process_priority(UINT8 process_ID, UINT8 priority)
 {
-
-    return 0;
+	UINT8 i = 0;
+	for(i = 0; i < NUM_PROCESSES; i++)
+	{
+		if (g_test_proc_table[i].m_process_ID == process_ID)
+		{
+			g_test_proc_table[i].m_priority = priority;
+			return 0;
+		}
+	}
+	return -1;
 }
 
-int get_process_priority(int process_ID)
+SINT8 get_process_priority(UINT8 process_ID)
 {
 
-    return 0;
+    UINT8 i = 0;
+	for(i = 0; i < NUM_PROCESSES; i++)
+	{
+		if (g_test_proc_table[i].m_process_ID == process_ID)
+		{
+			return g_test_proc_table[i].m_priority;
+		}
+	}
+	return -1;
 }
 
-int pop(struct s_queue * q, struct s_node * catcher)
+SINT8 pop(struct s_linked_list * q, struct s_node * catcher)
 {
     if(q->length <= 0)
     {
         return -1;
     }
+	if(q == 0)
+	{
+		return -1;
+	}
     catcher = q->m_front;
     q->m_front = q->m_front->m_next;
     q->length--;
     return 0;
 }
 
-int push(struct s_queue * q, struct s_node * new_back)
+SINT8 push(struct s_linked_list * q, struct s_node * new_back)
 {
     if(q->length == 0)
     {
         q->m_front = new_back;
+		q->m_back = new_back;
     }
+	if(q == 0 || new_back == 0)
+	{
+		return -1;
+	}
     q->m_back->m_next = new_back;
     new_back->m_next = NULL;
     q->m_back = new_back;
@@ -99,5 +166,21 @@ int push(struct s_queue * q, struct s_node * new_back)
     return 0;
 }
 
-
-
+struct s_pcb * find_pid(struct s_linked_list * list, UINT8 pid)
+{
+	if (list->m_front == 0)
+	{
+		return 0;
+	}
+	struct s_node * node = list->m_front;
+	while(node != 0)
+	{
+		if (node->m_data->m_process_ID == pid)
+		{
+			return (node->m_data);
+		}
+		node = node->m_next;
+	}
+	
+	return 0;
+}
