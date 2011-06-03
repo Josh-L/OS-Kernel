@@ -29,9 +29,11 @@ struct s_linked_list
     struct s_node *m_back;
 };
 
-struct pcb           g_null_proc;
-struct s_pcb         g_test_proc_table[NUM_PROCESSES];
-struct s_linked_list g_priority_ready[5];
+struct s_pcb           	g_null_proc;
+struct s_pcb         	g_test_proc_table[NUM_PROCESSES];
+struct s_linked_list 	g_priority_ready[5];
+struct s_pcb 	       *g_current_process;
+UINT32 					g_asmBridge;
 
 //Function prototypes
 VOID    sys_init();
@@ -81,15 +83,55 @@ VOID sys_init()
 
 }
 
+//to be called every 15ms(estimated time, could be changed)
 SINT8 scheduler()
 {
+	struct s_pcb * old_process;
+	
+	//Check if there exists a current_process, store it in old process.
+	if(g_current_process != 0){
+		g_current_process->m_state = 1;
+		old_process = g_current_process;
+	}
+	
+	
+	for(i = 0; i < 5; i++){
+		struct * s_linked_list q = g_priority_ready[i];
+		if(pop(q, g_current_process) != -1){
+            g_current_process->m_state = 2; //change state to running
+			break;							//get out of loop
+		}
+	}
+	
+	//checking if g_current_process still points to the same address as old process
+	struct * s_linked_list q = g_priority_ready[old_process->m_priority];
+	push( q,old_process);
 	
 	return 0;
 }
 
+//voluntarily called by process
 SINT8 release_processor()
-{
-
+{	
+	//backing up data registers.
+	asm('move.l D0, g_asmBridge');
+	g_current_process->m_d[0] = g_asmBridge;
+	asm('move.l D1, g_asmBridge');
+	g_current_process->m_d[1] = g_asmBridge;
+	asm('move.l D2, g_asmBridge');
+	g_current_process->m_d[2] = g_asmBridge;
+	asm('move.l D3, g_asmBridge');
+	g_current_process->m_d[3] = g_asmBridge;
+	asm('move.l D4, g_asmBridge');
+	g_current_process->m_d[4] = g_asmBridge;
+	asm('move.l D5, g_asmBridge');
+	g_current_process->m_d[5] = g_asmBridge;
+	asm('move.l D6, g_asmBridge');
+	g_current_process->m_d[6] = g_asmBridge;
+	asm('move.l D7, g_asmBridge');
+	g_current_process->m_d[7] = g_asmBridge;
+	
+	scheduler();
     return 0;
 }
 
