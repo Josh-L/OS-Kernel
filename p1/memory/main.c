@@ -15,6 +15,7 @@
 #include "dbug.h"
 #include "memory.h"
 #include "../Hex_to_ASCII.h"
+#include "../p2a/system.h"
 
 #define NUM_MEM_BLKS 32
 
@@ -26,7 +27,7 @@ int __main( VOID )
 
 int main( VOID )
 {
-    int i;
+    /*int i;
     void* p_mem_array[NUM_MEM_BLKS];
 
     init_memory();
@@ -56,6 +57,6 @@ int main( VOID )
             rtx_dbug_outs((CHAR *) "Release memory block: Failed \r\n");
         }
     }
-    rtx_dbug_outs((CHAR *) "All tests complete.\r\n");
+    rtx_dbug_outs((CHAR *) "All tests complete.\r\n");*/
     return 0;
 }

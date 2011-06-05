@@ -27,6 +27,7 @@ int __main( VOID )
 
 int main( VOID )
 {
+	sys_init();
     /*int i;
     void* p_mem_array[NUM_MEM_BLKS];
 
