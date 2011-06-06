@@ -2,15 +2,22 @@
 
 struct s_pcb           	g_null_proc;
 struct s_pcb         	g_test_proc_table[NUM_PROCESSES];
-struct s_pcb 			g_priority_ready[4][NUM_PROCESSES];
-UINT8                   g_priority_ready_tracker[4][2];
+struct s_pcb 		g_priority_ready[4][NUM_PROCESSES];
+SINT8                   g_priority_ready_tracker[4][2];
 struct s_pcb 	       *g_current_process;
-UINT32 					g_asmBridge;                       //Used as a temp variable to get contents of address and data registers into C structs.
-
+UINT32			g_asmBridge;
+UINT16			g_asmBridge16;
 //Function definitions
 VOID sys_init()
 {
-	rtx_dbug_outs((CHAR *)"sys_init\n\r");
+	g_asmBridge = 0;	
+	rtx_dbug_outs((CHAR *)"init trap\r\n ");        
+        asm( "move.l #asm_trap_entry,%d0" );
+        asm( "move.l %d0,0x10000080" );	
+        
+        asm( "move.w #0x2000,%SR" );
+	
+	rtx_dbug_outs((CHAR *)"sys_init\r\n");
 	UINT8 i = 0;
 	
     //Priority queues
@@ -28,7 +35,7 @@ VOID sys_init()
 	{
 		g_test_proc_table[i].m_process_ID = i + 1;
 		g_test_proc_table[i].m_priority   = 3;
-		g_test_proc_table[i].m_stack      = PROCESS_STACK_SIZE;
+		g_test_proc_table[i].m_stack      = __end + i*(PROCESS_STACK_SIZE);
 		g_test_proc_table[i].m_state	  = 1;
 	}
 	g_test_proc_table[0].m_entry = test_proc_1;
@@ -42,40 +49,129 @@ VOID sys_init()
 	for(i = 0; i < 6; i++)
 	{
 		push(g_test_proc_table[i].m_priority, &g_test_proc_table[i]);
-	}
+	        /*rtx_dbug_outs((CHAR *)"Head and Tails\r\n");
+	        rtx_dbug_out_char('0' + g_priority_ready_tracker[3][0]);
+        	rtx_dbug_outs((CHAR *)"\r\n");
+        	rtx_dbug_out_char('0' + g_priority_ready_tracker[3][1]);
+       		rtx_dbug_outs((CHAR *)"\r\n");
+		*/
+
+        }
 	
+
 	// Set up the null process
 	g_null_proc.m_process_ID = i;
 	g_null_proc.m_priority   = 4;
-	g_null_proc.m_stack      = PROCESS_STACK_SIZE;
+	g_null_proc.m_stack      = (__end + 4096)+ (NUM_PROCESSES )*PROCESS_STACK_SIZE;
 	g_null_proc.m_entry      = null_process;
 	
-	rtx_dbug_outs((CHAR *)"init scheduler\r\n");
-	for(i = 0; i < 4; i++)
-	{
-		if(pop(i, g_current_process) != -1)
-		{
-			break;							
-		}
+	/*	
+	UINT8 z;
+	for(z = 0; z < 6; z++){
+	 g_priority_ready[3][z];
+	rtx_dbug_outs((CHAR *)"Process\r\n");
+        rtx_dbug_out_char('0' +  g_priority_ready[3][z].m_process_ID);
+	 rtx_dbug_outs((CHAR *)"\r\n");
+	rtx_dbug_out_char('0' + g_priority_ready[3][z].m_priority);
+	 rtx_dbug_outs((CHAR *)"\r\n");
+	rtx_dbug_out_char('0' + g_priority_ready[3][z].m_state);
+	 rtx_dbug_outs((CHAR *)"\r\n");
+
 	}
 	
-	if(i == 4)
-	{
-		g_current_process = &g_null_proc;
+
+	for(z = 0; z < 6 ; z++){
+	 
+	rtx_dbug_outs((CHAR *)"Head and Tails\r\n");
+        rtx_dbug_out_char('0' + g_priority_ready_tracker[3][0]);
+        rtx_dbug_outs((CHAR *)"\r\n");
+        rtx_dbug_out_char('0' + g_priority_ready_tracker[3][1]);
+        rtx_dbug_outs((CHAR *)"\r\n");
+        printHexAddress((UINT32)&g_priority_ready_tracker[3][0]);
+	rtx_dbug_outs((CHAR *)"\r\n");
+
+	struct g_pcb *kotaku;
+	struct g_pcb *kotaku2;
+	kotaku2 = &g_priority_ready[3][g_priority_ready_tracker[3][0]];
+	pop (3, kotaku);
+
+	rtx_dbug_outs((CHAR *)"Kotaku and Kotaku2\r\n");
+	printHexAddress((UINT32)kotaku);
+	rtx_dbug_outs((CHAR *)"\r\n");
+	printHexAddress((UINT32)kotaku2);
+        rtx_dbug_outs((CHAR *)"\r\n");
+	
+	if(kotaku2 == kotaku){
+		rtx_dbug_outs((CHAR *)"Same Pop\r\n");
+
+	 }else{
+		 rtx_dbug_outs((CHAR *)"Different Pops\r\n");
+
+	 }
 	}
-	rtx_dbug_outs((CHAR *)"init scheduler finished\r\n");
+	*/
+	
+	
+	/*
+	UINT8 k;
+        for(k = 0; k < 4; k++)
+        {     
+	   if(pop(k, &g_current_process) != -1)
+                {
+                   break;
+                }
+        }
+
+         
+
+        if(k == 4)
+        {
+                g_current_process = &g_null_proc;
+        }
+	
+	
+	rtx_dbug_outs((CHAR *)"Set state\r\n");             	
+ 	
+//        g_current_process = &g_priority_ready[3][g_priority_ready_tracker[3][0]];
+
+	g_current_process->m_state = 2;
+	
+	rtx_dbug_outs((CHAR *)"Set Stack\r\n");
+	
+	g_asmBridge = g_current_process->m_stack; 
+	asm("move.l g_asmBridge, %a7");
+       
+
+        rtx_dbug_outs((CHAR *)"Going to first process\r\n");
+
+         g_current_process->m_entry();
+	*/
+	release_processor();
+	
 }
 
-SINT8 scheduler()
+VOID scheduler( VOID )
 {
-	
 
+	if(g_asmBridge != 0){
 	
-	rtx_dbug_outs((CHAR *)"scheduler\r\n");
+	asm("move.l %a7, g_asmBridge");
+        g_current_process->m_stack = g_asmBridge;   
+
+//	rtx_dbug_outs((CHAR *)"scheduler\r\n");
+	
+	if(g_current_process != 0){
+                g_current_process->m_state = 1;
+        }
+        
+        push(g_current_process->m_priority, g_current_process);
+	
+	}
+
 	UINT8 i;
 	for(i = 0; i < 4; i++)
 	{
-		if(pop(i, g_current_process) != -1)
+		if(pop(i, &g_current_process) != -1)
 		{
 			break;							
 		}
@@ -86,92 +182,47 @@ SINT8 scheduler()
 		g_current_process = &g_null_proc;
 	}
 	
-	
-	g_asmBridge = g_current_process->m_d[0];
-	asm("move.l g_asmBridge, %d0");
-	g_asmBridge = g_current_process->m_d[1];
-	asm("move.l g_asmBridge, %d1");
-	g_asmBridge = g_current_process->m_d[2];
-	asm("move.l g_asmBridge, %d2");
-	g_asmBridge = g_current_process->m_d[3];
-	asm("move.l g_asmBridge, %d3");
-	g_asmBridge = g_current_process->m_d[4];
-	asm("move.l g_asmBridge, %d4");
-	g_asmBridge = g_current_process->m_d[5];
-	asm("move.l g_asmBridge, %d5");
-	g_asmBridge = g_current_process->m_d[6];
-	asm("move.l g_asmBridge, %d6");
-	g_asmBridge = g_current_process->m_d[7];
-	asm("move.l g_asmBridge, %d7");
-	g_asmBridge = g_current_process->m_a[0];
-	asm("move.l g_asmBridge, %a0");
-	g_asmBridge = g_current_process->m_a[1];
-	asm("move.l g_asmBridge, %a1");
-	g_asmBridge = g_current_process->m_a[2];
-	asm("move.l g_asmBridge, %a2");
-	g_asmBridge = g_current_process->m_a[3];
-	asm("move.l g_asmBridge, %a3");
-	g_asmBridge = g_current_process->m_a[4];
-	asm("move.l g_asmBridge, %a4");
-	g_asmBridge = g_current_process->m_a[5];
-	asm("move.l g_asmBridge, %a5");
-	g_asmBridge = g_current_process->m_a[6];
-	asm("move.l g_asmBridge, %a6");
-	g_asmBridge = g_current_process->m_a[7];
-	asm("move.l g_asmBridge, %a7");
+/*	rtx_dbug_outs((CHAR *)"CAIGHT\r\n");
+        printHexAddress((UINT32) g_current_process);
+        rtx_dbug_outs((CHAR *)"\r\n");
+*/
 	
 	g_current_process->m_state = 2;
+/*	
+	        rtx_dbug_outs((CHAR *)"Head and Tails\r\n");
+                rtx_dbug_out_char('0' + g_priority_ready_tracker[3][0]);
+                rtx_dbug_outs((CHAR *)"\r\n");
+                rtx_dbug_out_char('0' + g_priority_ready_tracker[3][1]);
+                rtx_dbug_outs((CHAR *)"\r\n");
+*/	
+	rtx_dbug_outs((CHAR *)"A7 for New Process\r\n");
+	g_asmBridge = g_current_process->m_stack;
+	printHexAddress((UINT32) g_asmBridge);
+	rtx_dbug_outs((CHAR *)"\r\n");
+	asm("move.l g_asmBridge, %a7");
 	
-	return 0;
 }
+
 
 //voluntarily called by process
 SINT8 release_processor()
 {	
-	rtx_dbug_outs((CHAR *)"release_processor\n\r");
-	//backing up data registers.
-	asm("move.l %D0, g_asmBridge");
-	g_current_process->m_d[0] = g_asmBridge;
-	asm("move.l %D1, g_asmBridge");
-	g_current_process->m_d[1] = g_asmBridge;
-	asm("move.l %D2, g_asmBridge");
-	g_current_process->m_d[2] = g_asmBridge;
-	asm("move.l %D3, g_asmBridge");
-	g_current_process->m_d[3] = g_asmBridge;
-	asm("move.l %D4, g_asmBridge");
-	g_current_process->m_d[4] = g_asmBridge;
-	asm("move.l %D5, g_asmBridge");
-	g_current_process->m_d[5] = g_asmBridge;
-	asm("move.l %D6, g_asmBridge");
-	g_current_process->m_d[6] = g_asmBridge;
-	asm("move.l %D7, g_asmBridge");
-	g_current_process->m_d[7] = g_asmBridge;
-	asm("move.l %a0, g_asmBridge");
-	g_current_process->m_a[0] = g_asmBridge;
-	asm("move.l %a1, g_asmBridge");
-	g_current_process->m_a[1] = g_asmBridge;
-	asm("move.l %a2, g_asmBridge");
-	g_current_process->m_a[2] = g_asmBridge;
-	asm("move.l %a3, g_asmBridge");
-	g_current_process->m_a[3] = g_asmBridge;
-	asm("move.l %a4, g_asmBridge");
-	g_current_process->m_a[4] = g_asmBridge;
-	asm("move.l %a5, g_asmBridge");
-	g_current_process->m_a[5] = g_asmBridge;
-	asm("move.l %a6, g_asmBridge");
-	g_current_process->m_a[6] = g_asmBridge;
-	asm("move.l %a7, g_asmBridge");
-	g_current_process->m_a[7] = g_asmBridge;
-	rtx_dbug_outs((CHAR *)"dbug 1");
+
+        /*rtx_dbug_outs((CHAR *)"init release_processor\r\n");
+
 	if(g_current_process != 0){
 		g_current_process->m_state = 1;
 	}
-	rtx_dbug_outs((CHAR *)"dbug 2");
+	rtx_dbug_outs((CHAR *)"dbug \r\n");
 	push(g_current_process->m_priority, g_current_process);
-	rtx_dbug_outs((CHAR *)"dbug 3");
-	//Invoke scheduler to reassign g_current_process to new process to run
-	scheduler();
-    return 0;
+	*/
+
+//	rtx_dbug_outs((CHAR *)"start release_processor\r\n");
+        asm( "TRAP #0" );	
+
+	g_current_process->m_entry();
+	
+	return 0;
 }
 
 SINT8 send_message(UINT8 process_ID, VOID * MessageEnvelope)
@@ -213,22 +264,41 @@ SINT8 get_process_priority(UINT8 process_ID)
 	return -1;
 }
 
-SINT8 pop(UINT8 priority, struct s_pcb * catcher)
-{	
-	rtx_dbug_outs((CHAR *)"pop start\n");
-    if(g_priority_ready_tracker[priority][0] == -1)
+SINT8 pop(UINT8 priority, struct s_pcb ** catcher)
+{
+    /*      rtx_dbug_outs((CHAR *)"Old Tail\r\n");
+	  rtx_dbug_out_char('0' + g_priority_ready_tracker[priority][0]);
+          rtx_dbug_outs((CHAR *)"\r\n");
+	  printHexAddress((UINT32)&g_priority_ready_tracker[priority][0]);
+          rtx_dbug_outs((CHAR *)"\r\n");
+*/	
+		   
+ if(g_priority_ready_tracker[priority][0] == (SINT8) -1)
 	{
+//		rtx_dbug_outs((CHAR *)"Tail is negative\r\n");
 		return -1;
 	}
 	else
 	{
-		catcher = &g_priority_ready[priority][g_priority_ready_tracker[priority][0]];
+
+ //		rtx_dbug_outs((CHAR *)"Catching something\r\n");
+		
+                *catcher = &g_priority_ready[priority][g_priority_ready_tracker[priority][0]];
+
+/*		rtx_dbug_outs((CHAR *)"Caught\r\n");
+		printHexAddress((UINT32) *catcher);
+		rtx_dbug_outs((CHAR *)"\r\n");
+	        printHexAddress((UINT32) &g_priority_ready[priority][g_priority_ready_tracker[priority][0]]);
+	        rtx_dbug_outs((CHAR *)"\r\n");
+*/  
 		if(g_priority_ready_tracker[priority][0] == NUM_PROCESSES - 1)
 		{
+			//rtx_dbug_outs((CHAR *)"Reset Tail\r\n");
 			g_priority_ready_tracker[priority][0] = 0;
 		}
 		else
 		{
+			//rtx_dbug_outs((CHAR *)"Incrementing Tail\r\n");
 			g_priority_ready_tracker[priority][0]++;
 		}
 	}
@@ -237,14 +307,26 @@ SINT8 pop(UINT8 priority, struct s_pcb * catcher)
 
 SINT8 push(UINT8 priority, struct s_pcb * new_back)
 {
-    if(g_priority_ready_tracker[priority][1] == -1)
+
+      if(g_priority_ready_tracker[priority][1] == -1)
 	{
+		//rtx_dbug_outs((CHAR *)"Initialize Priority Queue\r\n");
 		g_priority_ready_tracker[priority][0] = 0;
 		g_priority_ready_tracker[priority][1] = 0;
 		g_priority_ready[priority][0] = *new_back;
+		/*
+		g_priority_ready[priority][0].m_process_ID = new_back->m_process_ID;
+                g_priority_ready[priority][0].m_priority = new_back->m_priority;
+                g_priority_ready[priority][0].m_state = new_back->m_state;
+                g_priority_ready[priority][0].m_stack = new_back->m_stack;
+                g_priority_ready[priority][0].m_entry = new_back->m_entry;
+		//g_priority_ready[priority][0].m_a7 = new_back->m_a7;
+		*/
+			
 	}
 	else
 	{
+	      //rtx_dbug_outs((CHAR *) "Reg Push in  Priority Queue\r\n");
 		//Check if queue is full
 		if((g_priority_ready_tracker[priority][1] - g_priority_ready_tracker[priority][0])*
 		   (g_priority_ready_tracker[priority][1] - g_priority_ready_tracker[priority][0]) == 
@@ -253,7 +335,9 @@ SINT8 push(UINT8 priority, struct s_pcb * new_back)
 			return -1;
 		}
 		else
-		{
+		{ 
+		//  rtx_dbug_outs((CHAR *)"Priority Queue Not Full\r\n");
+
 			if(g_priority_ready_tracker[priority][1] + 1 >= NUM_PROCESSES)
 			{
 				g_priority_ready_tracker[priority][1] = 0;
@@ -261,20 +345,16 @@ SINT8 push(UINT8 priority, struct s_pcb * new_back)
 			else
 			{
 				g_priority_ready_tracker[priority][1]++;
+				//rtx_dbug_outs((CHAR *)"New head\r\n");
+				//rtx_dbug_out_char('0' + g_priority_ready_tracker[priority][1]);	
+				//rtx_dbug_outs((CHAR *)"\r\n");
 			}
 			g_priority_ready[priority][g_priority_ready_tracker[priority][1]].m_process_ID = new_back->m_process_ID;
 			g_priority_ready[priority][g_priority_ready_tracker[priority][1]].m_priority = new_back->m_priority;
 			g_priority_ready[priority][g_priority_ready_tracker[priority][1]].m_state = new_back->m_state;
-			g_priority_ready[priority][g_priority_ready_tracker[priority][1]].m_stack = new_back->m_stack;
-			
-			UINT8 i = 0;
-			for(i = 0; i < 8; i++)
-			{
-				g_priority_ready[priority][g_priority_ready_tracker[priority][1]].m_a[i] = new_back->m_a[i];
-				g_priority_ready[priority][g_priority_ready_tracker[priority][1]].m_d[i] = new_back->m_d[i];
-			}
+			g_priority_ready[priority][g_priority_ready_tracker[priority][1]].m_stack = new_back->m_stack;	
 			g_priority_ready[priority][g_priority_ready_tracker[priority][1]].m_entry = new_back->m_entry;
 		}
 	}
     return 0;
-}
+ }

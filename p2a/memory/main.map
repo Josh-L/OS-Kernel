@@ -3,15 +3,16 @@ Allocating common symbols
 Common symbol       size              file
 
 g_asmBridge         0x4               system.o
-g_test_proc_table   0x1d4             system.o
+g_test_proc_table   0x54              system.o
 g_priority_ready_tracker
                     0x8               system.o
-g_priority_ready    0x750             system.o
+g_priority_ready    0x150             system.o
 gp_mem_pool_list    0x80              memory.o
-old_stack           0x4               /tmp/ccdbERw3.o
+old_stack           0x4               /tmp/ccgpTTmh.o
+g_asmBridge16       0x2               system.o
 gp_mem_pool_lookup  0x80              memory.o
-main_stack          0x1000            /tmp/ccdbERw3.o
-g_null_proc         0x4e              system.o
+main_stack          0x1000            /tmp/ccgpTTmh.o
+g_null_proc         0xe               system.o
 g_current_process   0x4               system.o
 
 Memory Configuration
@@ -22,7 +23,8 @@ ram              0x10100000         0x00100000
 
 Linker script and memory map
 
-LOAD /tmp/ccdbERw3.o
+LOAD /tmp/ccgpTTmh.o
+LOAD /tmp/ccALw69o.o
 LOAD dbug.o
 LOAD Hex_to_ASCII.o
 LOAD null_process.o
@@ -39,118 +41,123 @@ END GROUP
                 0x00000000                PROVIDE (software_init_hook, 0x0)
                 0x00000000                PROVIDE (_software_init_hook, 0x0)
 
-.text           0x10100000      0xfcb
+.text           0x10100000      0xcfd
  *(.text)
- .text          0x10100000       0x1e /tmp/ccdbERw3.o
+ .text          0x10100000       0x1e /tmp/ccgpTTmh.o
  *fill*         0x1010001e        0x2 00
- .text          0x10100020       0x9a dbug.o
-                0x10100040                rtx_dbug_outs
-                0x10100020                rtx_dbug_out_char
- *fill*         0x101000ba        0x2 00
- .text          0x101000bc      0x126 Hex_to_ASCII.o
-                0x101000bc                printHexAddress
- *fill*         0x101001e2        0x2 00
- .text          0x101001e4       0x1a null_process.o
-                0x101001e4                null_process
- *fill*         0x101001fe        0x2 00
- .text          0x10100200       0x9c dummy_processes.o
-                0x10100268                test_proc_5
-                0x1010024e                test_proc_4
-                0x10100234                test_proc_3
-                0x10100200                test_proc_1
-                0x1010021a                test_proc_2
-                0x10100282                test_proc_6
- .text          0x1010029c      0xb00 system.o
-                0x1010029c                sys_init
-                0x10100940                get_process_priority
-                0x101008b8                set_process_priority
-                0x1010089c                send_message
-                0x101004e6                scheduler
-                0x101009ba                pop
-                0x101008ae                receive_message
-                0x101006be                release_processor
-                0x10100a82                push
- .text          0x10100d9c      0x14a memory.o
-                0x10100e6c                s_release_memory_block
-                0x10100d9c                init_memory
-                0x10100dfc                s_request_memory_block
- *fill*         0x10100ee6        0x2 00
- .text          0x10100ee8       0x1a main.o
-                0x10100ee8                __main
-                0x10100ef2                main
-                0x10100f04                . = ALIGN (0x4)
- *fill*         0x10100f02        0x2 00
-                0x10100f04                __CTOR_LIST__ = .
-                0x10100f04        0x4 LONG 0x0 (((__CTOR_END__ - __CTOR_LIST__) / 0x4) - 0x2)
+ .text          0x10100020       0x44 /tmp/ccALw69o.o
+                0x10100020                asm_trap_entry
+ .text          0x10100064       0x9a dbug.o
+                0x10100084                rtx_dbug_outs
+                0x10100064                rtx_dbug_out_char
+ *fill*         0x101000fe        0x2 00
+ .text          0x10100100      0x126 Hex_to_ASCII.o
+                0x10100100                printHexAddress
+ *fill*         0x10100226        0x2 00
+ .text          0x10100228       0x1a null_process.o
+                0x10100228                null_process
+ *fill*         0x10100242        0x2 00
+ .text          0x10100244       0x9c dummy_processes.o
+                0x101002ac                test_proc_5
+                0x10100292                test_proc_4
+                0x10100278                test_proc_3
+                0x10100244                test_proc_1
+                0x1010025e                test_proc_2
+                0x101002c6                test_proc_6
+ .text          0x101002e0      0x832 system.o
+                0x101002e0                sys_init
+                0x101006ea                get_process_priority
+                0x1010065a                set_process_priority
+                0x1010063e                send_message
+                0x10100526                scheduler
+                0x1010076c                pop
+                0x10100650                receive_message
+                0x10100626                release_processor
+                0x1010083e                push
+ *fill*         0x10100b12        0x2 00
+ .text          0x10100b14      0x14a memory.o
+                0x10100be4                s_release_memory_block
+                0x10100b14                init_memory
+                0x10100b74                s_request_memory_block
+ *fill*         0x10100c5e        0x2 00
+ .text          0x10100c60       0x1a main.o
+                0x10100c60                __main
+                0x10100c6a                main
+                0x10100c7c                . = ALIGN (0x4)
+ *fill*         0x10100c7a        0x2 00
+                0x10100c7c                __CTOR_LIST__ = .
+                0x10100c7c        0x4 LONG 0x0 (((__CTOR_END__ - __CTOR_LIST__) / 0x4) - 0x2)
  *(.ctors)
-                0x10100f08        0x4 LONG 0x0
-                0x10100f0c                __CTOR_END__ = .
-                0x10100f0c                __DTOR_LIST__ = .
-                0x10100f0c        0x4 LONG 0x0 (((__DTOR_END__ - __DTOR_LIST__) / 0x4) - 0x2)
+                0x10100c80        0x4 LONG 0x0
+                0x10100c84                __CTOR_END__ = .
+                0x10100c84                __DTOR_LIST__ = .
+                0x10100c84        0x4 LONG 0x0 (((__DTOR_END__ - __DTOR_LIST__) / 0x4) - 0x2)
  *(.dtors)
-                0x10100f10        0x4 LONG 0x0
-                0x10100f14                __DTOR_END__ = .
+                0x10100c88        0x4 LONG 0x0
+                0x10100c8c                __DTOR_END__ = .
  *(.rodata*)
- .rodata        0x10100f14        0x3 Hex_to_ASCII.o
- .rodata        0x10100f17       0x16 null_process.o
- .rodata        0x10100f2d       0x18 dummy_processes.o
- .rodata        0x10100f45       0x76 system.o
+ .rodata        0x10100c8c        0x3 Hex_to_ASCII.o
+ .rodata        0x10100c8f       0x16 null_process.o
+ .rodata        0x10100ca5       0x18 dummy_processes.o
+ .rodata        0x10100cbd       0x30 system.o
  *(.gcc_except_table)
-                0x10100fbb                __INIT_SECTION__ = .
-                0x10100fbb        0x4 LONG 0x4e560000
+                0x10100ced                __INIT_SECTION__ = .
+                0x10100ced        0x4 LONG 0x4e560000
  *(.init)
-                0x10100fbf        0x2 SHORT 0x4e5e
-                0x10100fc1        0x2 SHORT 0x4e75
-                0x10100fc3                __FINI_SECTION__ = .
-                0x10100fc3        0x4 LONG 0x4e560000
+                0x10100cf1        0x2 SHORT 0x4e5e
+                0x10100cf3        0x2 SHORT 0x4e75
+                0x10100cf5                __FINI_SECTION__ = .
+                0x10100cf5        0x4 LONG 0x4e560000
  *(.fini)
-                0x10100fc7        0x2 SHORT 0x4e5e
-                0x10100fc9        0x2 SHORT 0x4e75
-                0x10100fcb                _etext = .
+                0x10100cf9        0x2 SHORT 0x4e5e
+                0x10100cfb        0x2 SHORT 0x4e75
+                0x10100cfd                _etext = .
  *(.lit)
 
-.data           0x10100fcc        0x0
+.data           0x10100d00        0x0
  *(.shdata)
  *(.data)
- .data          0x10100fcc        0x0 /tmp/ccdbERw3.o
- .data          0x10100fcc        0x0 dbug.o
- .data          0x10100fcc        0x0 Hex_to_ASCII.o
- .data          0x10100fcc        0x0 null_process.o
- .data          0x10100fcc        0x0 dummy_processes.o
- .data          0x10100fcc        0x0 system.o
- .data          0x10100fcc        0x0 memory.o
- .data          0x10100fcc        0x0 main.o
-                0x10100fcc                _edata = .
+ .data          0x10100d00        0x0 /tmp/ccgpTTmh.o
+ .data          0x10100d00        0x0 /tmp/ccALw69o.o
+ .data          0x10100d00        0x0 dbug.o
+ .data          0x10100d00        0x0 Hex_to_ASCII.o
+ .data          0x10100d00        0x0 null_process.o
+ .data          0x10100d00        0x0 dummy_processes.o
+ .data          0x10100d00        0x0 system.o
+ .data          0x10100d00        0x0 memory.o
+ .data          0x10100d00        0x0 main.o
+                0x10100d00                _edata = .
 
-.bss            0x10100fcc     0x1a96
-                0x10100fcc                __bss_start = .
+.bss            0x10100d00     0x12d4
+                0x10100d00                __bss_start = .
  *(.shbss)
  *(.bss)
- .bss           0x10100fcc        0x0 /tmp/ccdbERw3.o
- .bss           0x10100fcc        0x0 dbug.o
- .bss           0x10100fcc        0x0 Hex_to_ASCII.o
- .bss           0x10100fcc        0x0 null_process.o
- .bss           0x10100fcc        0x0 dummy_processes.o
- .bss           0x10100fcc        0x0 system.o
- .bss           0x10100fcc        0x0 memory.o
- .bss           0x10100fcc        0x0 main.o
+ .bss           0x10100d00        0x0 /tmp/ccgpTTmh.o
+ .bss           0x10100d00        0x0 /tmp/ccALw69o.o
+ .bss           0x10100d00        0x0 dbug.o
+ .bss           0x10100d00        0x0 Hex_to_ASCII.o
+ .bss           0x10100d00        0x0 null_process.o
+ .bss           0x10100d00        0x0 dummy_processes.o
+ .bss           0x10100d00        0x0 system.o
+ .bss           0x10100d00        0x0 memory.o
+ .bss           0x10100d00        0x0 main.o
  *(COMMON)
- *fill*         0x10100fcc        0x4 00
- COMMON         0x10100fd0     0x1010 /tmp/ccdbERw3.o
-                0x10100fd0                old_stack
-                0x10100fe0                main_stack
- COMMON         0x10101fe0      0x982 system.o
-                0x10101fe0                g_asmBridge
-                0x10101fe4                g_test_proc_table
-                0x101021b8                g_priority_ready_tracker
-                0x101021c0                g_priority_ready
-                0x10102910                g_null_proc
-                0x1010295e                g_current_process
- COMMON         0x10102962      0x100 memory.o
-                0x10102962                gp_mem_pool_list
-                0x101029e2                gp_mem_pool_lookup
-                0x10102a68                _end = ALIGN (0x8)
-                0x10102a68                __end = _end
+ COMMON         0x10100d00     0x1010 /tmp/ccgpTTmh.o
+                0x10100d00                old_stack
+                0x10100d10                main_stack
+ COMMON         0x10101d10      0x1c4 system.o
+                0x10101d10                g_asmBridge
+                0x10101d14                g_test_proc_table
+                0x10101d68                g_priority_ready_tracker
+                0x10101d70                g_priority_ready
+                0x10101ec0                g_asmBridge16
+                0x10101ec2                g_null_proc
+                0x10101ed0                g_current_process
+ COMMON         0x10101ed4      0x100 memory.o
+                0x10101ed4                gp_mem_pool_list
+                0x10101f54                gp_mem_pool_lookup
+                0x10101fd8                _end = ALIGN (0x8)
+                0x10101fd8                __end = _end
 
 .stab
  *(.stab)
