@@ -1,12 +1,12 @@
 #include "system.h"
 
-struct s_pcb           	g_null_proc;
-struct s_pcb         	g_test_proc_table[NUM_PROCESSES];
+struct s_pcb        g_null_proc;
+struct s_pcb        g_test_proc_table[NUM_PROCESSES];
 struct s_pcb 		g_priority_ready[4][NUM_PROCESSES];
-SINT8                   g_priority_ready_tracker[4][2];
-struct s_pcb 	       *g_current_process;
-UINT32			g_asmBridge;
-UINT16			g_asmBridge16;
+SINT8               g_priority_ready_tracker[4][2];
+struct s_pcb 	    *g_current_process;
+UINT32				g_asmBridge = 0;
+
 //Function definitions
 VOID sys_init()
 {
@@ -33,11 +33,35 @@ VOID sys_init()
 	//Initialize processes
 	for(i = 0; i < NUM_PROCESSES; i++)
 	{
+		UINT32 * addr;
 		g_test_proc_table[i].m_process_ID = i + 1;
 		g_test_proc_table[i].m_priority   = 3;
-		g_test_proc_table[i].m_stack      = __end + i*(PROCESS_STACK_SIZE);
+		g_test_proc_table[i].m_stack      = &__end + i*(PROCESS_STACK_SIZE);
 		g_test_proc_table[i].m_state	  = 1;
+		
+		//Construct ESF and initial values for d0..d7, and a0..a6 for each process
+		addr = g_test_proc_table[i].m_stack;
+		*addr = g_test_proc_table[i].m_entry;
+		addr--;
+		*addr = 0x40000000;
+		
+		UINT8 j;
+		for(j = 0; j < 15; j++)
+		{
+			addr--;
+			*addr = 0x00000000;
+		}
+		g_test_proc_table[i].m_stack = addr;
+		
+		rtx_dbug_outs("Process ");
+		printHexAddress(i);
+		rtx_dbug_outs(":\r\nStack begins := ");
+		printHexAddress(g_test_proc_table[i].m_stack);
+		rtx_dbug_outs(", Entry := ");
+		printHexAddress(g_test_proc_table[i].m_entry);
+		rtx_dbug_outs("\r\n");
 	}
+	
 	g_test_proc_table[0].m_entry = test_proc_1;
 	g_test_proc_table[1].m_entry = test_proc_2;
 	g_test_proc_table[2].m_entry = test_proc_3;
@@ -56,14 +80,13 @@ VOID sys_init()
        		rtx_dbug_outs((CHAR *)"\r\n");
 		*/
 
-        }
+    }
 	
-
 	// Set up the null process
-	g_null_proc.m_process_ID = i;
+	/*g_null_proc.m_process_ID = i;
 	g_null_proc.m_priority   = 4;
-	g_null_proc.m_stack      = (__end + 4096)+ (NUM_PROCESSES )*PROCESS_STACK_SIZE;
-	g_null_proc.m_entry      = null_process;
+	g_null_proc.m_stack      = (&__end + 4096)+ (NUM_PROCESSES )*PROCESS_STACK_SIZE;
+	g_null_proc.m_entry      = null_process;*/
 	
 	/*	
 	UINT8 z;
@@ -146,25 +169,52 @@ VOID sys_init()
 
          g_current_process->m_entry();
 	*/
-	release_processor();
+	g_asmBridge = 0;
 	
+	scheduler();
+	
+	printHexAddress(g_asmBridge);
+	rtx_dbug_outs("\r\n");
+	asm("move.l g_asmBridge, %a7");
+	
+	asm("move.l (%a7)+, %a6");
+	asm("move.l (%a7)+, %a5");
+	asm("move.l (%a7)+, %a4");
+	asm("move.l (%a7)+, %a3");
+	asm("move.l (%a7)+, %a2");
+	asm("move.l (%a7)+, %a1");
+	asm("move.l (%a7)+, %a0");
+	asm("move.l (%a7)+, %d7");
+	asm("move.l (%a7)+, %d6");
+	asm("move.l (%a7)+, %d5");
+	asm("move.l (%a7)+, %d4");
+	asm("move.l (%a7)+, %d3");
+	asm("move.l (%a7)+, %d2");
+	asm("move.l (%a7)+, %d1");
+	asm("move.l (%a7)+, %d0");
+	
+	asm("debug:");
+	
+	asm("rte");
 }
 
 VOID scheduler( VOID )
 {
 
-	if(g_asmBridge != 0){
+	if(g_asmBridge != 0)
+	{
 	
-	asm("move.l %a7, g_asmBridge");
+		asm("move.l %a7, g_asmBridge");
         g_current_process->m_stack = g_asmBridge;   
 
 //	rtx_dbug_outs((CHAR *)"scheduler\r\n");
 	
-	if(g_current_process != 0){
+	if(g_current_process != 0)
+	{
                 g_current_process->m_state = 1;
-        }
+    }
         
-        push(g_current_process->m_priority, g_current_process);
+		push(g_current_process->m_priority, g_current_process);
 	
 	}
 
@@ -182,7 +232,8 @@ VOID scheduler( VOID )
 		g_current_process = &g_null_proc;
 	}
 	
-/*	rtx_dbug_outs((CHAR *)"CAIGHT\r\n");
+/*
+		rtx_dbug_outs((CHAR *)":");
         printHexAddress((UINT32) g_current_process);
         rtx_dbug_outs((CHAR *)"\r\n");
 */
@@ -190,17 +241,13 @@ VOID scheduler( VOID )
 	g_current_process->m_state = 2;
 /*	
 	        rtx_dbug_outs((CHAR *)"Head and Tails\r\n");
-                rtx_dbug_out_char('0' + g_priority_ready_tracker[3][0]);
+                rtx_dbug_out_char('0' + g_prioity_ready_tracker[3][0]);
                 rtx_dbug_outs((CHAR *)"\r\n");
                 rtx_dbug_out_char('0' + g_priority_ready_tracker[3][1]);
                 rtx_dbug_outs((CHAR *)"\r\n");
-*/	
-	rtx_dbug_outs((CHAR *)"A7 for New Process\r\n");
-	g_asmBridge = g_current_process->m_stack;
-	printHexAddress((UINT32) g_asmBridge);
-	rtx_dbug_outs((CHAR *)"\r\n");
-	asm("move.l g_asmBridge, %a7");
+*/
 	
+	g_asmBridge = g_current_process->m_stack;
 }
 
 
@@ -219,8 +266,6 @@ SINT8 release_processor()
 
 //	rtx_dbug_outs((CHAR *)"start release_processor\r\n");
         asm( "TRAP #0" );	
-
-	g_current_process->m_entry();
 	
 	return 0;
 }

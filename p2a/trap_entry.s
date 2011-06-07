@@ -18,6 +18,7 @@ asm_trap_entry:
 	move.l %a6, -(%a7)
 		
 	jsr	scheduler
+	move.l g_asmBridge, %a7
 	
 	move.l (%a7)+, %a6
 	move.l (%a7)+, %a5
@@ -36,4 +37,4 @@ asm_trap_entry:
 	move.l (%a7)+, %d0
 	
 	rte
-
+	

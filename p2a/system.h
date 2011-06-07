@@ -3,6 +3,7 @@
 #include "null_process.h"
 #include "memory/memory.h"
 #include "Hex_to_ASCII.h"
+#include "memory/dbug.h"
 
 #ifndef __SYSTEM__
 #define __SYSTEM__
