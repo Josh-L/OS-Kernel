@@ -24,6 +24,7 @@ VOID sys_init()
 	asm( "move.w #0x2000,%SR" );
 	
 	UINT8 i = 0;
+	UINT32 * addr;
 	
     //Priority queues
 	for(i = 0; i < 4; i++)
@@ -35,10 +36,27 @@ VOID sys_init()
 		}
 	}
 	
+	// Set up the null process
+	g_null_proc.m_process_ID = 0;
+	g_null_proc.m_priority   = 4;
+	g_null_proc.m_stack      = &__end + KERNEL_STACK_SIZE;
+	g_null_proc.m_entry      = null_process;
+	addr = g_null_proc.m_stack;
+	*addr = g_null_proc.m_entry;
+	addr--;
+	*addr = 0x40000000;
+	
+	UINT8 k;
+	for(k = 0; k < 15; k++)
+	{
+		addr--;
+		*addr = 0x00000000;
+	}
+	g_null_proc.m_stack = addr;
+	
 	//Initialize processes
 	for(i = 0; i < NUM_PROCESSES; i++)
 	{
-		UINT32 * addr;
 		g_test_proc_table[i].m_process_ID = i + 1;
 		g_test_proc_table[i].m_priority   = 3;
 		g_test_proc_table[i].m_stack      = &__end + KERNEL_STACK_SIZE + (i+1)*(PROCESS_STACK_SIZE);
@@ -77,11 +95,7 @@ VOID sys_init()
 	g_test_proc_table[4].m_entry = test_proc_5;
 	g_test_proc_table[5].m_entry = test_proc_6;
 	
-	// Set up the null process
-	g_null_proc.m_process_ID = 0;
-	g_null_proc.m_priority   = 4;
-	g_null_proc.m_stack      = &__end + KERNEL_STACK_SIZE;
-	g_null_proc.m_entry      = null_process;
+	
 	
 	asm("move.l %a7, g_asmBridge"); //Save kernel stack location
 	g_kernelStack = g_asmBridge;
