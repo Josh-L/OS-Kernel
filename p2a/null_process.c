@@ -3,9 +3,9 @@
 
 VOID null_process()
 {
-	rtx_dbug_outs((CHAR *)"null_process\n");
 	while(1)
 	{
+		rtx_dbug_outs((CHAR *)"null process\n\r");
 		release_processor();
 	}
 }

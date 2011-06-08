@@ -8,7 +8,8 @@
 #ifndef __SYSTEM__
 #define __SYSTEM__
 
-#define PROCESS_STACK_SIZE 1024 //Temporary for now, needs to be changed once appropriate value is agreed upon.
+#define PROCESS_STACK_SIZE 1024 // Temporary for now, needs to be changed once appropriate value is agreed upon.
+#define KERNEL_STACK_SIZE  1024 // Another temporary value that is suitable for now
 #define NUM_PROCESSES      6
 
 //Structs

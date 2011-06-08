@@ -6,7 +6,7 @@ VOID test_proc_1()
 {
 	while(1)
 	{
-		rtx_dbug_outs((CHAR *)"1\n\r");
+		rtx_dbug_outs("1\r\n");
 		release_processor();
 	}
 }

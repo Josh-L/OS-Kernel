@@ -1,6 +1,11 @@
 	.globl asm_trap_entry
-	.even		
+	.even
 asm_trap_entry:
+	
+	add.l #4, %a7
+	move.l g_asmBridge, (%a7)
+	sub.l #4, %a7
+	
 	move.l %d0, -(%a7)
 	move.l %d1, -(%a7)
 	move.l %d2, -(%a7)
@@ -16,7 +21,7 @@ asm_trap_entry:
 	move.l %a4, -(%a7)
 	move.l %a5, -(%a7)
 	move.l %a6, -(%a7)
-		
+	
 	jsr	scheduler
 	move.l g_asmBridge, %a7
 	

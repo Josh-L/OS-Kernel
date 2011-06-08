@@ -5,19 +5,24 @@ struct s_pcb        g_test_proc_table[NUM_PROCESSES];
 struct s_pcb 		g_priority_ready[4][NUM_PROCESSES];
 SINT8               g_priority_ready_tracker[4][2];
 struct s_pcb 	    *g_current_process;
+UINT32				*g_kernelStack = 0;
 UINT32				g_asmBridge = 0;
+UINT8				g_first_run = 1;
+
 
 //Function definitions
 VOID sys_init()
 {
-	g_asmBridge = 0;	
-	rtx_dbug_outs((CHAR *)"init trap\r\n ");        
-        asm( "move.l #asm_trap_entry,%d0" );
-        asm( "move.l %d0,0x10000080" );	
-        
-        asm( "move.w #0x2000,%SR" );
+	// Set A7 to our kernel stack
+	g_asmBridge = &__end;
+	g_kernelStack = &__end;
+	asm("move.l g_asmBridge, %a7");
+	      
+	asm( "move.l #asm_trap_entry,%d0" );
+	asm( "move.l %d0,0x10000080" );	
 	
-	rtx_dbug_outs((CHAR *)"sys_init\r\n");
+	asm( "move.w #0x2000,%SR" );
+	
 	UINT8 i = 0;
 	
     //Priority queues
@@ -36,8 +41,17 @@ VOID sys_init()
 		UINT32 * addr;
 		g_test_proc_table[i].m_process_ID = i + 1;
 		g_test_proc_table[i].m_priority   = 3;
-		g_test_proc_table[i].m_stack      = &__end + i*(PROCESS_STACK_SIZE);
+		g_test_proc_table[i].m_stack      = &__end + KERNEL_STACK_SIZE + (i+1)*(PROCESS_STACK_SIZE);
 		g_test_proc_table[i].m_state	  = 1;
+		
+		// Stack information output
+		rtx_dbug_outs("Process ");
+		printHexAddress(i);
+		rtx_dbug_outs(":\r\nStack begins := ");
+		printHexAddress(g_test_proc_table[i].m_stack);
+		rtx_dbug_outs(", Entry := ");
+		printHexAddress(g_test_proc_table[i].m_entry);
+		rtx_dbug_outs("\r\n");
 		
 		//Construct ESF and initial values for d0..d7, and a0..a6 for each process
 		addr = g_test_proc_table[i].m_stack;
@@ -53,15 +67,9 @@ VOID sys_init()
 		}
 		g_test_proc_table[i].m_stack = addr;
 		
-		rtx_dbug_outs("Process ");
-		printHexAddress(i);
-		rtx_dbug_outs(":\r\nStack begins := ");
-		printHexAddress(g_test_proc_table[i].m_stack);
-		rtx_dbug_outs(", Entry := ");
-		printHexAddress(g_test_proc_table[i].m_entry);
-		rtx_dbug_outs("\r\n");
+		// Add processes to appropriate ready queues
+		push(g_test_proc_table[i].m_priority, &g_test_proc_table[i]);
 	}
-	
 	g_test_proc_table[0].m_entry = test_proc_1;
 	g_test_proc_table[1].m_entry = test_proc_2;
 	g_test_proc_table[2].m_entry = test_proc_3;
@@ -69,114 +77,18 @@ VOID sys_init()
 	g_test_proc_table[4].m_entry = test_proc_5;
 	g_test_proc_table[5].m_entry = test_proc_6;
 	
-	//Add processes to appropriate ready queues
-	for(i = 0; i < 6; i++)
-	{
-		push(g_test_proc_table[i].m_priority, &g_test_proc_table[i]);
-	        /*rtx_dbug_outs((CHAR *)"Head and Tails\r\n");
-	        rtx_dbug_out_char('0' + g_priority_ready_tracker[3][0]);
-        	rtx_dbug_outs((CHAR *)"\r\n");
-        	rtx_dbug_out_char('0' + g_priority_ready_tracker[3][1]);
-       		rtx_dbug_outs((CHAR *)"\r\n");
-		*/
-
-    }
-	
 	// Set up the null process
-	/*g_null_proc.m_process_ID = i;
+	g_null_proc.m_process_ID = 0;
 	g_null_proc.m_priority   = 4;
-	g_null_proc.m_stack      = (&__end + 4096)+ (NUM_PROCESSES )*PROCESS_STACK_SIZE;
-	g_null_proc.m_entry      = null_process;*/
+	g_null_proc.m_stack      = &__end + KERNEL_STACK_SIZE;
+	g_null_proc.m_entry      = null_process;
 	
-	/*	
-	UINT8 z;
-	for(z = 0; z < 6; z++){
-	 g_priority_ready[3][z];
-	rtx_dbug_outs((CHAR *)"Process\r\n");
-        rtx_dbug_out_char('0' +  g_priority_ready[3][z].m_process_ID);
-	 rtx_dbug_outs((CHAR *)"\r\n");
-	rtx_dbug_out_char('0' + g_priority_ready[3][z].m_priority);
-	 rtx_dbug_outs((CHAR *)"\r\n");
-	rtx_dbug_out_char('0' + g_priority_ready[3][z].m_state);
-	 rtx_dbug_outs((CHAR *)"\r\n");
-
-	}
+	asm("move.l %a7, g_asmBridge"); //Save kernel stack location
+	g_kernelStack = g_asmBridge;
+	scheduler(); // Scheduler picks the next process, and loads it's stack pointer into g_asmBridge
+	asm("move.l g_asmBridge, %a7"); // Load the selected process' stack pointer into A7
 	
-
-	for(z = 0; z < 6 ; z++){
-	 
-	rtx_dbug_outs((CHAR *)"Head and Tails\r\n");
-        rtx_dbug_out_char('0' + g_priority_ready_tracker[3][0]);
-        rtx_dbug_outs((CHAR *)"\r\n");
-        rtx_dbug_out_char('0' + g_priority_ready_tracker[3][1]);
-        rtx_dbug_outs((CHAR *)"\r\n");
-        printHexAddress((UINT32)&g_priority_ready_tracker[3][0]);
-	rtx_dbug_outs((CHAR *)"\r\n");
-
-	struct g_pcb *kotaku;
-	struct g_pcb *kotaku2;
-	kotaku2 = &g_priority_ready[3][g_priority_ready_tracker[3][0]];
-	pop (3, kotaku);
-
-	rtx_dbug_outs((CHAR *)"Kotaku and Kotaku2\r\n");
-	printHexAddress((UINT32)kotaku);
-	rtx_dbug_outs((CHAR *)"\r\n");
-	printHexAddress((UINT32)kotaku2);
-        rtx_dbug_outs((CHAR *)"\r\n");
-	
-	if(kotaku2 == kotaku){
-		rtx_dbug_outs((CHAR *)"Same Pop\r\n");
-
-	 }else{
-		 rtx_dbug_outs((CHAR *)"Different Pops\r\n");
-
-	 }
-	}
-	*/
-	
-	
-	/*
-	UINT8 k;
-        for(k = 0; k < 4; k++)
-        {     
-	   if(pop(k, &g_current_process) != -1)
-                {
-                   break;
-                }
-        }
-
-         
-
-        if(k == 4)
-        {
-                g_current_process = &g_null_proc;
-        }
-	
-	
-	rtx_dbug_outs((CHAR *)"Set state\r\n");             	
- 	
-//        g_current_process = &g_priority_ready[3][g_priority_ready_tracker[3][0]];
-
-	g_current_process->m_state = 2;
-	
-	rtx_dbug_outs((CHAR *)"Set Stack\r\n");
-	
-	g_asmBridge = g_current_process->m_stack; 
-	asm("move.l g_asmBridge, %a7");
-       
-
-        rtx_dbug_outs((CHAR *)"Going to first process\r\n");
-
-         g_current_process->m_entry();
-	*/
-	g_asmBridge = 0;
-	
-	scheduler();
-	
-	printHexAddress(g_asmBridge);
-	rtx_dbug_outs("\r\n");
-	asm("move.l g_asmBridge, %a7");
-	
+	// Back up registers and then RTE
 	asm("move.l (%a7)+, %a6");
 	asm("move.l (%a7)+, %a5");
 	asm("move.l (%a7)+, %a4");
@@ -193,31 +105,23 @@ VOID sys_init()
 	asm("move.l (%a7)+, %d1");
 	asm("move.l (%a7)+, %d0");
 	
-	asm("debug:");
-	
 	asm("rte");
 }
 
 VOID scheduler( VOID )
 {
-
-	if(g_asmBridge != 0)
-	{
 	
+	// If this isn't the first time the scheduler is run, then save the current_process information
+	if(g_first_run == 0)
+	{
 		asm("move.l %a7, g_asmBridge");
-        g_current_process->m_stack = g_asmBridge;   
-
-//	rtx_dbug_outs((CHAR *)"scheduler\r\n");
-	
-	if(g_current_process != 0)
-	{
-                g_current_process->m_state = 1;
-    }
-        
+        g_current_process->m_stack = (g_asmBridge + 0xC);
+		g_current_process->m_state = 1;
 		push(g_current_process->m_priority, g_current_process);
-	
+		
 	}
-
+	g_first_run = 0; // Record that we have run the scheduler once
+	
 	UINT8 i;
 	for(i = 0; i < 4; i++)
 	{
@@ -227,46 +131,29 @@ VOID scheduler( VOID )
 		}
 	}
 	
+	// If we could not find any ready process, start our null process
 	if(i == 4)
 	{
 		g_current_process = &g_null_proc;
 	}
 	
-/*
-		rtx_dbug_outs((CHAR *)":");
-        printHexAddress((UINT32) g_current_process);
-        rtx_dbug_outs((CHAR *)"\r\n");
-*/
-	
+	// Set process state of selected process to running and restore its stack
 	g_current_process->m_state = 2;
-/*	
-	        rtx_dbug_outs((CHAR *)"Head and Tails\r\n");
-                rtx_dbug_out_char('0' + g_prioity_ready_tracker[3][0]);
-                rtx_dbug_outs((CHAR *)"\r\n");
-                rtx_dbug_out_char('0' + g_priority_ready_tracker[3][1]);
-                rtx_dbug_outs((CHAR *)"\r\n");
-*/
-	
 	g_asmBridge = g_current_process->m_stack;
 }
 
 
-//voluntarily called by process
+// Voluntarily called by process
 SINT8 release_processor()
-{	
-
-        /*rtx_dbug_outs((CHAR *)"init release_processor\r\n");
-
-	if(g_current_process != 0){
-		g_current_process->m_state = 1;
-	}
-	rtx_dbug_outs((CHAR *)"dbug \r\n");
-	push(g_current_process->m_priority, g_current_process);
-	*/
-
-//	rtx_dbug_outs((CHAR *)"start release_processor\r\n");
-        asm( "TRAP #0" );	
+{
+	UINT32 *addr = 0;
+	asm("move.l %a7, g_asmBridge");
+	addr = g_asmBridge + 0x8;
+	g_asmBridge = g_asmBridge + 0xC;
+	asm("move.l g_asmBridge, %a7");
+	g_asmBridge = *addr;
 	
+    asm("TRAP #0");
 	return 0;
 }
 
