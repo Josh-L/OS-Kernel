@@ -170,12 +170,131 @@ VOID * receive_message(UINT8 * sender_ID)
 
 SINT8 set_process_priority(UINT8 process_ID, UINT8 priority)
 {
+	if(priority >= 4) //Invalid priority level
+	{
+		return -1;
+	}
+	if(process_ID == 0) 
+	{
+		if(priority != 4) //Trying to change priority level of null process
+		{
+			return -1;
+		}
+	}
 	UINT8 i = 0;
 	for(i = 0; i < NUM_PROCESSES; i++)
 	{
 		if (g_test_proc_table[i].m_process_ID == process_ID)
 		{
-			g_test_proc_table[i].m_priority = priority;
+			rtx_dbug_outs((CHAR *)"Current priority queue looks like this:\n\r");
+			UINT8 j = 0;
+			for(j = 0; j < NUM_PROCESSES; j++)
+			{
+				printHexAddress(g_priority_ready[g_test_proc_table[i].m_priority][j].m_process_ID);
+				rtx_dbug_outs((CHAR *)"\n\r");
+			}
+			//g_test_proc_table[i].m_priority = priority;
+			struct s_pcb * catcher;
+			UINT8 k = g_priority_ready[g_test_proc_table[i].m_priority][g_priority_ready_tracker[g_test_proc_table[i].m_priority][0]].m_process_ID;
+			rtx_dbug_outs((CHAR *)"head of queue is:");
+			printHexAddress(g_test_proc_table[i].m_priority][0]);
+			rtx_dbug_outs((CHAR *)"\n\r");
+			rtx_dbug_outs((CHAR *)"k is:");
+			printHexAddress(k);
+			rtx_dbug_outs((CHAR *)"\n\r");
+			rtx_dbug_outs((CHAR *)"process_ID is:");
+			printHexAddress(process_ID);
+			rtx_dbug_outs((CHAR *)"\n\r");
+			if(k == process_ID)//Process being changed is current queue head
+			{
+				rtx_dbug_outs((CHAR *)"process being modified is head\n\r");
+				pop(g_test_proc_table[i].m_priority, &catcher);
+				g_test_proc_table[i].m_priority = priority;
+				push(g_test_proc_table[i].m_priority, catcher);
+				return 0;
+			}
+			do//Find element to pop, modify it, and push to new priority queue
+			{
+				pop(g_test_proc_table[i].m_priority, &catcher);
+				rtx_dbug_outs((CHAR *)"catcher process ID:");
+				printHexAddress(catcher->m_process_ID);
+				rtx_dbug_outs((CHAR *)"\n\r");
+				if(catcher->m_process_ID == process_ID)
+				{
+					rtx_dbug_outs((CHAR *)"proces s being modified has process ID:");
+					printHexAddress(g_test_proc_table[i].m_process_ID);
+					rtx_dbug_outs((CHAR *)"\n\r");
+					g_test_proc_table[i].m_priority = priority;
+				}
+				push(g_test_proc_table[i].m_priority, catcher);
+			}while(k != g_priority_ready[g_test_proc_table[i].m_priority][g_priority_ready_tracker[g_test_proc_table[i].m_priority][0]].m_process_ID);
+			/*if(g_priority_ready[g_test_proc_table[i].m_priority][g_priority_ready_tracker[g_test_proc_table[i].m_priority][0]].m_process_ID == process_ID)//We're modifying priority of head
+			{
+				pop(g_test_proc_table[i].m_priority, &catcher);
+				g_test_proc_table[i].m_priority = priority;
+				push(g_test_proc_table[i].m_priority, &g_test_proc_table[i]);
+			}
+			else
+			{
+				UINT8 k = g_priority_ready_tracker[g_test_proc_table[i].m_priority][0];
+				if(k == NUM_PROCESSES - 1)
+				{
+					k = 0;
+				}
+				else
+				{
+					k++;
+				}
+				while(k != g_priority_ready_tracker[g_test_proc_table[i].m_priority][1])//Find element in array to be modified
+				{
+					if(g_priority_ready[g_test_proc_table[i].m_priority][k].m_process_ID == process_ID)//Found it!
+					{
+						while(k != g_priority_ready_tracker[g_test_proc_table[i].m_priority][1])//Iterate from found element to tail, essentially performing a shift on the array elements to delete the desired element
+						{
+							if(k+1 == NUM_PROCESSES -1)//Account for wrap-around behavour of queue-as-array
+							{
+								g_priority_ready[priority][k].m_process_ID = g_priority_ready[priority][0].m_process_ID;
+								g_priority_ready[priority][k].m_priority = g_priority_ready[priority][0].m_priority;
+								g_priority_ready[priority][k].m_state = g_priority_ready[priority][0].m_state;
+								g_priority_ready[priority][k].m_stack = g_priority_ready[priority][0].m_stack;	
+								g_priority_ready[priority][k].m_entry = g_priority_ready[priority][0].m_entry;
+								k = 0;
+							}
+							else
+							{
+								g_priority_ready[priority][k].m_process_ID = g_priority_ready[priority][k+1].m_process_ID;
+								g_priority_ready[priority][k].m_priority = g_priority_ready[priority][k+1].m_priority;
+								g_priority_ready[priority][k].m_state = g_priority_ready[priority][k+1].m_state;
+								g_priority_ready[priority][k].m_stack = g_priority_ready[priority][k+1].m_stack;	
+								g_priority_ready[priority][k].m_entry = g_priority_ready[priority][k+1].m_entry;
+								k++;
+							}
+						}
+						if(g_priority_ready_tracker[g_test_proc_table[i].m_priority][1] == 0)//Update stored tail index after element has been removed.
+						{
+							g_priority_ready_tracker[g_test_proc_table[i].m_priority][1] = NUM_PROCESSES - 1;
+						}
+						else
+						{
+							g_priority_ready_tracker[g_test_proc_table[i].m_priority][1]--;
+						} 
+						g_test_proc_table[i].m_priority = priority;
+						push(g_test_proc_table[i].m_priority, &g_test_proc_table[i]);
+						break;
+					}
+					else
+					{
+						if(k == NUM_PROCESSES - 1)
+						{
+							k = 0;
+						}
+						else
+						{
+							k++;
+						}
+					}
+				}
+			}*/
 			return 0;
 		}
 	}
