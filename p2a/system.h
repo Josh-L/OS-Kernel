@@ -19,10 +19,20 @@ struct s_pcb
     UINT8   m_priority;
     UINT8   m_state;       //0 blocked, 1 ready, 2 running
     UINT32  m_stack;
-    // UINT32  m_a7;
-    //UINT32  m_a[8];
-    //UINT32  m_d[8];
     VOID    (*m_entry)();
+};
+
+struct s_pcb_queue_item
+{
+	struct s_pcb_queue_item * next;
+	struct s_pcb * data;
+};
+
+
+struct s_pcb_queue
+{
+	struct s_pcb_queue_item * front;
+	struct s_pcb_queue_item * back;
 };
 
 extern struct s_pcb           	g_null_proc;
@@ -39,9 +49,9 @@ VOID    scheduler( VOID );
 SINT8   release_processor();
 SINT8   send_message(UINT8 process_ID, VOID * MessageEnvelope);
 VOID  * receive_message(UINT8 * sender_ID);
+SINT8 pop(UINT8 priority, struct s_pcb ** catcher);
+SINT8 push(UINT8 priority, struct s_pcb * new_back);
 SINT8   set_process_priority(UINT8 process_ID, UINT8 priority);
-SINT8   get_process_priority(UINT8 process_ID);
-SINT8   pop(UINT8 priority, struct s_pcb ** catcher);
-SINT8   push(UINT8 priority, struct s_pcb * new_back);
+VOID iterate(UINT8 priority);
 
 #endif
