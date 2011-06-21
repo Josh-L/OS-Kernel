@@ -8,9 +8,8 @@
 #ifndef __SYSTEM__
 #define __SYSTEM__
 
-#define PROCESS_STACK_SIZE 1024 // Temporary for now, needs to be changed once appropriate value is agreed upon.
-#define KERNEL_STACK_SIZE  1024 // Another temporary value that is suitable for now
-#define NUM_PROCESSES      6
+#define KERNEL_STACK_SIZE	2048 // Another temporary value that is suitable for now
+#define NUM_PRIORITIES		5
 
 //Structs
 struct s_pcb
@@ -35,13 +34,9 @@ struct s_pcb_queue
 	struct s_pcb_queue_item * back;
 };
 
-extern struct s_pcb           	g_null_proc;
-extern struct s_pcb         	g_test_proc_table[NUM_PROCESSES];
-extern struct s_pcb 			g_priority_ready[4][NUM_PROCESSES];
-extern SINT8                   g_priority_ready_tracker[4][2];
-extern struct s_pcb 	       *g_current_process;
-extern UINT32			g_asmBridge;
-extern UINT16			g_asmBridge16;
+/*extern struct s_pcb         	g_proc_table[NUM_PROCESSES];
+extern struct s_pcb 	       	*g_current_process;
+extern UINT32					g_asmBridge;*/
 
 //Function prototypes
 VOID    sys_init();

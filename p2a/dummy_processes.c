@@ -4,12 +4,13 @@
 
 VOID test_proc_1()
 {
+	asm("proc1:");
 	while(1)
 	{
 		//rtx_dbug_outs("a\r\n");
 		rtx_dbug_out_char('1');
 		release_processor();
-		set_process_priority(2, 1);
+		//set_process_priority(2,1);
 	}
 }
 
