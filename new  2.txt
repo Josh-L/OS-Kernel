@@ -1,2 +1,0 @@
--- couple with test harness
--- no system calls from user processes, need trap to switch to supervisor mode before priority changing
