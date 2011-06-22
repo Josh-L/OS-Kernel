@@ -12,14 +12,14 @@ AR=m68k-elf-ar
 ARFLAGS=
 OBJCPY=m68k-elf-objcopy
 OBJDUMP=m68k-elf-objdump
-ASM=./start.s ../trap_entry.s
+ASM=./start.s ../trap_entry.s ../trap_1_handler.s
 LDFLAGS = -Trtx.ld -Wl,-Map=main.map
 
 OBJS=dbug.o Hex_to_ASCII.o null_process.o dummy_processes.o system.o memory.o main.o
 
 # Note, GCC builds things in order, it's important to put yhe
 #  ASM first, so that it is located at the beginning of our program.
-main.s19: ../trap_entry.s $(OBJS) 
+main.s19: ../trap_entry.s ../trap_1_handler.s $(OBJS) 
 	$(CC) $(CFLAGS) $(LDFLAGS) -o main.bin $(ASM) $(OBJS) 
 	$(OBJCPY) --output-format=srec main.bin main.s19
 	$(OBJDUMP) -xdC main.bin > main.lst

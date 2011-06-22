@@ -21,8 +21,11 @@ VOID sys_init()
 	g_asmBridge = g_kernelStack;
 	asm("move.l g_asmBridge, %a7");
 	      
+	// Insert TRAP subroutines into vector table
 	asm( "move.l #asm_trap_entry,%d0" );
 	asm( "move.l %d0,0x10000080" );	
+	asm( "move.l #trap_1_handler,%d0" );
+	asm( "move.l %d0,0x10000084" );
 	
 	// Setting the status register to allow interrupts, not needed now
 	//asm( "move.w #0x2000,%SR" );
@@ -79,70 +82,6 @@ VOID sys_init()
 		printHexAddress(g_proc_table[i].m_entry);
 		rtx_dbug_outs("\r\n");
 	}
-	
-	/*// Set up the null process
-	g_null_proc.m_process_ID = 0;
-	g_null_proc.m_priority   = 4;
-	g_null_proc.m_stack      = &__end + KERNEL_STACK_SIZE;
-	g_null_proc.m_entry      = null_process;
-	addr = g_null_proc.m_stack;
-	*addr = g_null_proc.m_entry;
-	addr--;
-	*addr = 0x40000000;
-	
-	UINT8 k = 0;
-	for(k = 0; k < 15; k++)
-	{
-		addr--;
-		*addr = 0x00000000;
-	}
-	g_null_proc.m_stack = addr;
-	
-	//Initialize processes
-	for(i = 0; i < NUM_PROCESSES; i++)
-	{
-		g_queue_slots[i].data = 0;
-		g_queue_slots[i].next = 0;
-		
-		g_proc_table[i].m_process_ID = i + 1;
-		g_proc_table[i].m_priority   = 2;
-		g_proc_table[i].m_stack      = &__end + KERNEL_STACK_SIZE + (i+1)*(PROCESS_STACK_SIZE);
-		g_proc_table[i].m_state	  = 1;
-		
-		// Stack information output
-		rtx_dbug_outs("Process ");
-		printHexAddress(i);
-		rtx_dbug_outs(":\r\nStack begins := ");
-		printHexAddress(g_proc_table[i].m_stack);
-		rtx_dbug_outs(", Entry := ");
-		printHexAddress(g_proc_table[i].m_entry);
-		rtx_dbug_outs("\r\n");
-		
-		//Construct ESF and initial values for d0..d7, and a0..a6 for each process
-		addr = g_proc_table[i].m_stack;
-		*addr = g_proc_table[i].m_entry;
-		addr--;
-		*addr = 0x40000000;
-		
-		UINT8 j;
-		for(j = 0; j < 15; j++)
-		{
-			addr--;
-			*addr = 0x00000000;
-		}
-		g_proc_table[i].m_stack = addr;
-		
-		// Add processes to appropriate ready queues
-		push(g_proc_table[i].m_priority, &g_proc_table[i]);
-	}
-	
-	g_proc_table[0].m_entry = test_proc_1;
-	g_proc_table[1].m_entry = test_proc_2;
-	g_proc_table[2].m_entry = test_proc_3;
-	g_proc_table[3].m_entry = test_proc_4;
-	g_proc_table[4].m_entry = test_proc_5;
-	g_proc_table[5].m_entry = test_proc_6;
-	*/
 	
 	asm("move.l %a7, g_asmBridge"); //Save kernel stack location
 	g_kernelStack = g_asmBridge;
@@ -313,10 +252,80 @@ SINT8 push(UINT8 priority, struct s_pcb * new_back)
 
 SINT8 set_process_priority(UINT8 process_ID, UINT8 priority)
 {
+	UINT8 returnVal = 0;
+	
+	//Backup address and data registers
+	asm("move.l %d0, -(%a7)");
+	asm("move.l %d1, -(%a7)");
+	asm("move.l %d2, -(%a7)");
+	asm("move.l %d3, -(%a7)");
+	asm("move.l %d4, -(%a7)");
+	asm("move.l %d5, -(%a7)");
+	asm("move.l %d6, -(%a7)");
+	asm("move.l %d7, -(%a7)");
+	asm("move.l %a0, -(%a7)");
+	asm("move.l %a1, -(%a7)");
+	asm("move.l %a2, -(%a7)");
+	asm("move.l %a3, -(%a7)");
+	asm("move.l %a4, -(%a7)");
+	asm("move.l %a5, -(%a7)");
+	asm("move.l %a6, -(%a7)");
+	
+	//Push process_ID and priority to stack in order to pass to trap handler
+	g_asmBridge = (UINT32)process_ID;
+	asm("move.l g_asmBridge, -(%a7)");
+	g_asmBridge = (UINT32)priority;
+	asm("move.l g_asmBridge, -(%a7)");
+	
+	asm("TRAP #1");
+	
+	//Pop previously pushed parameters
+	asm("move.l (%a7)+, g_asmBridge");
+	asm("move.l (%a7)+, g_asmBridge");
+	
+	//Pop return value from stack
+	asm("move.l (%a7)+, g_asmBridge");
+	returnVal = g_asmBridge;
+	
+	asm("move.l (%a7)+, %a6");
+	asm("move.l (%a7)+, %a5");
+	asm("move.l (%a7)+, %a4");
+	asm("move.l (%a7)+, %a3");
+	asm("move.l (%a7)+, %a2");
+	asm("move.l (%a7)+, %a1");
+	asm("move.l (%a7)+, %a0");
+	asm("move.l (%a7)+, %d7");
+	asm("move.l (%a7)+, %d6");
+	asm("move.l (%a7)+, %d5");
+	asm("move.l (%a7)+, %d4");
+	asm("move.l (%a7)+, %d3");
+	asm("move.l (%a7)+, %d2");
+	asm("move.l (%a7)+, %d1");
+	asm("move.l (%a7)+, %d0");
+	
+	return returnVal;
+}
+
+VOID set_process_priority_trap_handler()
+{
+	UINT8 priority = 0;
+	UINT8 process_ID = 0;
+	
+	//Pop passed parameters from stack
+	asm("move.l -16(%a6), g_asmBridge");
+	priority = (UINT8)(g_asmBridge << 24);
+	asm("move.l -16(%a6), g_asmBridge");
+	process_ID = (UINT8)(g_asmBridge << 24);
+	printHexAddress(priority);
+	printHexAddress(process_ID);
+	asm("debug:");
 	// Check valid priority
 	if (priority < 0 || priority > (NUM_PRIORITIES - 2))
 	{
-		return -1;
+		//Push return value of -1 to stack
+		g_asmBridge =  -1;
+		asm("move.l -(%a7), g_asmBridge");
+		return;
 	}
 	
 	// Find current priority of process
@@ -334,19 +343,28 @@ SINT8 set_process_priority(UINT8 process_ID, UINT8 priority)
 	// If the process ID doesn't exist
 	if (i == NUM_PROCESSES)
 	{
-		return -1;
+		//Push return value of -1 to stack
+		g_asmBridge =  -1;
+		asm("move.l -(%a7), g_asmBridge");
+		return;
 	}
 	
 	// If the new priority is the same as the old, just return
 	if (oldPriority == priority)
 	{
-		return 0;
+		//Push return value of 0 to stack
+		g_asmBridge = 0;
+		asm("move.l -(%a7), g_asmBridge");
+		return;
 	}
 	
 	if(g_current_process->m_process_ID == process_ID)
 	{
 		g_proc_table[i].m_priority = priority;
-		return 0;
+		//Push return value of 0 to stack
+		g_asmBridge = 0;
+		asm("move.l -(%a7), g_asmBridge");
+		return;
 	}
 	
 	struct s_pcb_queue_item * cur = g_priority_queues[oldPriority].front;
@@ -399,6 +417,10 @@ SINT8 set_process_priority(UINT8 process_ID, UINT8 priority)
 	
 	// Now push to new priority queue
 	push(priority, &g_proc_table[i]);
+	
+	//Push return value of 0 to stack
+	g_asmBridge =  0;
+	asm("move.l -(%a7), g_asmBridge");
 }
 
 SINT8 get_process_priority(UINT8 process_ID)
