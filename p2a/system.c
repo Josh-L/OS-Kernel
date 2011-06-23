@@ -252,7 +252,7 @@ SINT8 push(UINT8 priority, struct s_pcb * new_back)
 
 SINT8 set_process_priority(UINT8 process_ID, UINT8 priority)
 {
-	UINT8 returnVal = 0;
+	SINT8 returnVal = 0;
 	
 	//Backup address and data registers
 	asm("move.l %d0, -(%a7)");
@@ -271,21 +271,17 @@ SINT8 set_process_priority(UINT8 process_ID, UINT8 priority)
 	asm("move.l %a5, -(%a7)");
 	asm("move.l %a6, -(%a7)");
 	
-	//Push process_ID and priority to stack in order to pass to trap handler
+	//Place process_ID and priority into d2 and d3 respectively to pass to set_process_priority_trap_handler
 	g_asmBridge = (UINT32)process_ID;
-	asm("move.l g_asmBridge, -(%a7)");
+	asm("move.l g_asmBridge, %d2");
 	g_asmBridge = (UINT32)priority;
-	asm("move.l g_asmBridge, -(%a7)");
+	asm("move.l g_asmBridge, %d3");
 	
 	asm("TRAP #1");
 	
-	//Pop previously pushed parameters
-	asm("move.l (%a7)+, g_asmBridge");
-	asm("move.l (%a7)+, g_asmBridge");
-	
-	//Pop return value from stack
-	asm("move.l (%a7)+, g_asmBridge");
-	returnVal = g_asmBridge;
+	//Take return value from d1
+	asm("move.l %d1, g_asmBridge");
+	returnVal = (SINT8)(g_asmBridge << 24);
 	
 	asm("move.l (%a7)+, %a6");
 	asm("move.l (%a7)+, %a5");
@@ -311,20 +307,20 @@ VOID set_process_priority_trap_handler()
 	UINT8 priority = 0;
 	UINT8 process_ID = 0;
 	
-	//Pop passed parameters from stack
-	asm("move.l -16(%a6), g_asmBridge");
-	priority = (UINT8)(g_asmBridge << 24);
-	asm("move.l -16(%a6), g_asmBridge");
-	process_ID = (UINT8)(g_asmBridge << 24);
+	//Retrieve passed parameters from d2 and d3
+	asm("move.l %d3, g_asmBridge");
+	priority = (UINT8)(g_asmBridge);
+	asm("move.l %d2, g_asmBridge");
+	process_ID = (UINT8)(g_asmBridge);
 	printHexAddress(priority);
 	printHexAddress(process_ID);
 	asm("debug:");
 	// Check valid priority
 	if (priority < 0 || priority > (NUM_PRIORITIES - 2))
 	{
-		//Push return value of -1 to stack
+		//Put return value in d2
 		g_asmBridge =  -1;
-		asm("move.l -(%a7), g_asmBridge");
+		asm("move.l g_asmBridge, %d2");
 		return;
 	}
 	
@@ -343,28 +339,30 @@ VOID set_process_priority_trap_handler()
 	// If the process ID doesn't exist
 	if (i == NUM_PROCESSES)
 	{
-		//Push return value of -1 to stack
-		g_asmBridge =  -1;
-		asm("move.l -(%a7), g_asmBridge");
-		return;
+		 //Put return value in d2
+                g_asmBridge =  -1;
+                asm("move.l g_asmBridge, %d2");
+                return;
 	}
 	
 	// If the new priority is the same as the old, just return
 	if (oldPriority == priority)
 	{
-		//Push return value of 0 to stack
-		g_asmBridge = 0;
-		asm("move.l -(%a7), g_asmBridge");
-		return;
+		 //Put return value in d2
+                g_asmBridge =  0;
+                asm("move.l g_asmBridge, %d2");
+                return;
+
 	}
 	
 	if(g_current_process->m_process_ID == process_ID)
 	{
 		g_proc_table[i].m_priority = priority;
-		//Push return value of 0 to stack
-		g_asmBridge = 0;
-		asm("move.l -(%a7), g_asmBridge");
-		return;
+		 //Put return value in d2
+                g_asmBridge =  0;
+                asm("move.l g_asmBridge, %d2");
+                return;
+
 	}
 	
 	struct s_pcb_queue_item * cur = g_priority_queues[oldPriority].front;
@@ -418,9 +416,9 @@ VOID set_process_priority_trap_handler()
 	// Now push to new priority queue
 	push(priority, &g_proc_table[i]);
 	
-	//Push return value of 0 to stack
-	g_asmBridge =  0;
-	asm("move.l -(%a7), g_asmBridge");
+	//Put return value in d2
+        g_asmBridge =  0;
+        asm("move.l g_asmBridge, %d2");
 }
 
 SINT8 get_process_priority(UINT8 process_ID)

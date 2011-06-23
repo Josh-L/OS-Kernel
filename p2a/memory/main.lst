@@ -60,7 +60,7 @@ SYMBOL TABLE:
 10100e7c g     F .text	00000082 get_process_priority
 10101107 g       .text	00000000 __INIT_SECTION__
 10101080 g     O .text	00000054 process_init_table
-10100aca g     F .text	000000a0 set_process_priority
+10100aca g     F .text	00000098 set_process_priority
 1010007c g     F .text	00000020 rtx_dbug_out_char
 10100fd0 g     F .text	0000007a s_release_memory_block
 101021c4 g     O .bss	00000028 g_priority_queues
@@ -82,7 +82,7 @@ SYMBOL TABLE:
 10100020 g       .text	00000000 asm_trap_entry
 10100284 g     F .text	00000018 test_proc_2
 1010111a g     O .data	00000004 g_free_mem
-10100b6a g     F .text	00000312 set_process_priority_trap_handler
+10100b62 g     F .text	0000031a set_process_priority_trap_handler
 10101120 g       .data	00000000 _edata
 1010088c g     F .text	0000000a receive_message
 101022f0 g       .bss	00000000 _end
@@ -143,7 +143,7 @@ Disassembly of section .text:
 10100072:	4e73           	rte
 
 10100074 <trap_1_handler>:
-10100074:	4eb9 1010 0b6a 	jsr 10100b6a <set_process_priority_trap_handler>
+10100074:	4eb9 1010 0b62 	jsr 10100b62 <set_process_priority_trap_handler>
 1010007a:	4e73           	rte
 
 1010007c <rtx_dbug_out_char>:
@@ -1019,48 +1019,48 @@ Disassembly of section .text:
 10100b02:	4280           	clrl %d0
 10100b04:	102e fffa      	moveb %fp@(-6),%d0
 10100b08:	23c0 1010 1124 	movel %d0,10101124 <g_asmBridge>
-10100b0e:	2f39 1010 1124 	movel 10101124 <g_asmBridge>,%sp@-
+10100b0e:	2439 1010 1124 	movel 10101124 <g_asmBridge>,%d2
 10100b14:	4280           	clrl %d0
 10100b16:	102e fff8      	moveb %fp@(-8),%d0
 10100b1a:	23c0 1010 1124 	movel %d0,10101124 <g_asmBridge>
-10100b20:	2f39 1010 1124 	movel 10101124 <g_asmBridge>,%sp@-
+10100b20:	2639 1010 1124 	movel 10101124 <g_asmBridge>,%d3
 10100b26:	4e41           	trap #1
-10100b28:	23df 1010 1124 	movel %sp@+,10101124 <g_asmBridge>
-10100b2e:	23df 1010 1124 	movel %sp@+,10101124 <g_asmBridge>
-10100b34:	23df 1010 1124 	movel %sp@+,10101124 <g_asmBridge>
-10100b3a:	2039 1010 1124 	movel 10101124 <g_asmBridge>,%d0
-10100b40:	1d40 ffff      	moveb %d0,%fp@(-1)
-10100b44:	2c5f           	moveal %sp@+,%fp
-10100b46:	2a5f           	moveal %sp@+,%a5
-10100b48:	285f           	moveal %sp@+,%a4
-10100b4a:	265f           	moveal %sp@+,%a3
-10100b4c:	245f           	moveal %sp@+,%a2
-10100b4e:	225f           	moveal %sp@+,%a1
-10100b50:	205f           	moveal %sp@+,%a0
-10100b52:	2e1f           	movel %sp@+,%d7
-10100b54:	2c1f           	movel %sp@+,%d6
-10100b56:	2a1f           	movel %sp@+,%d5
-10100b58:	281f           	movel %sp@+,%d4
-10100b5a:	261f           	movel %sp@+,%d3
-10100b5c:	241f           	movel %sp@+,%d2
-10100b5e:	221f           	movel %sp@+,%d1
-10100b60:	201f           	movel %sp@+,%d0
-10100b62:	102e ffff      	moveb %fp@(-1),%d0
-10100b66:	4e5e           	unlk %fp
-10100b68:	4e75           	rts
+10100b28:	23c1 1010 1124 	movel %d1,10101124 <g_asmBridge>
+10100b2e:	2039 1010 1124 	movel 10101124 <g_asmBridge>,%d0
+10100b34:	7218           	moveq #24,%d1
+10100b36:	e3a8           	lsll %d1,%d0
+10100b38:	1d40 ffff      	moveb %d0,%fp@(-1)
+10100b3c:	2c5f           	moveal %sp@+,%fp
+10100b3e:	2a5f           	moveal %sp@+,%a5
+10100b40:	285f           	moveal %sp@+,%a4
+10100b42:	265f           	moveal %sp@+,%a3
+10100b44:	245f           	moveal %sp@+,%a2
+10100b46:	225f           	moveal %sp@+,%a1
+10100b48:	205f           	moveal %sp@+,%a0
+10100b4a:	2e1f           	movel %sp@+,%d7
+10100b4c:	2c1f           	movel %sp@+,%d6
+10100b4e:	2a1f           	movel %sp@+,%d5
+10100b50:	281f           	movel %sp@+,%d4
+10100b52:	261f           	movel %sp@+,%d3
+10100b54:	241f           	movel %sp@+,%d2
+10100b56:	221f           	movel %sp@+,%d1
+10100b58:	201f           	movel %sp@+,%d0
+10100b5a:	102e ffff      	moveb %fp@(-1),%d0
+10100b5e:	4e5e           	unlk %fp
+10100b60:	4e75           	rts
 
-10100b6a <set_process_priority_trap_handler>:
-10100b6a:	4e56 ffec      	linkw %fp,#-20
-10100b6e:	4200           	clrb %d0
-10100b70:	1d40 fff4      	moveb %d0,%fp@(-12)
-10100b74:	4201           	clrb %d1
-10100b76:	1d41 fff5      	moveb %d1,%fp@(-11)
-10100b7a:	23d7 1010 1124 	movel %sp@,10101124 <g_asmBridge>
-10100b80:	4200           	clrb %d0
-10100b82:	1d40 fff4      	moveb %d0,%fp@(-12)
-10100b86:	23d7 1010 1124 	movel %sp@,10101124 <g_asmBridge>
-10100b8c:	4201           	clrb %d1
-10100b8e:	1d41 fff5      	moveb %d1,%fp@(-11)
+10100b62 <set_process_priority_trap_handler>:
+10100b62:	4e56 ffec      	linkw %fp,#-20
+10100b66:	4200           	clrb %d0
+10100b68:	1d40 fff4      	moveb %d0,%fp@(-12)
+10100b6c:	4201           	clrb %d1
+10100b6e:	1d41 fff5      	moveb %d1,%fp@(-11)
+10100b72:	23c3 1010 1124 	movel %d3,10101124 <g_asmBridge>
+10100b78:	2039 1010 1124 	movel 10101124 <g_asmBridge>,%d0
+10100b7e:	1d40 fff4      	moveb %d0,%fp@(-12)
+10100b82:	23c2 1010 1124 	movel %d2,10101124 <g_asmBridge>
+10100b88:	2039 1010 1124 	movel 10101124 <g_asmBridge>,%d0
+10100b8e:	1d40 fff5      	moveb %d0,%fp@(-11)
 10100b92:	4280           	clrl %d0
 10100b94:	102e fff4      	moveb %fp@(-12),%d0
 10100b98:	2f00           	movel %d0,%sp@-
@@ -1080,7 +1080,7 @@ Disassembly of section .text:
 10100bbc:	6412           	bccs 10100bd0 <debug+0x1e>
 10100bbe:	70ff           	moveq #-1,%d0
 10100bc0:	23c0 1010 1124 	movel %d0,10101124 <g_asmBridge>
-10100bc6:	23e7 1010 1124 	movel %sp@-,10101124 <g_asmBridge>
+10100bc6:	2439 1010 1124 	movel 10101124 <g_asmBridge>,%d2
 10100bcc:	6000 02aa      	braw 10100e78 <debug+0x2c6>
 10100bd0:	4201           	clrb %d1
 10100bd2:	1d41 fff6      	moveb %d1,%fp@(-10)
@@ -1128,7 +1128,7 @@ Disassembly of section .text:
 10100c48:	6612           	bnes 10100c5c <debug+0xaa>
 10100c4a:	70ff           	moveq #-1,%d0
 10100c4c:	23c0 1010 1124 	movel %d0,10101124 <g_asmBridge>
-10100c52:	23e7 1010 1124 	movel %sp@-,10101124 <g_asmBridge>
+10100c52:	2439 1010 1124 	movel 10101124 <g_asmBridge>,%d2
 10100c58:	6000 021e      	braw 10100e78 <debug+0x2c6>
 10100c5c:	4281           	clrl %d1
 10100c5e:	122e fff7      	moveb %fp@(-9),%d1
@@ -1137,7 +1137,7 @@ Disassembly of section .text:
 10100c68:	b081           	cmpl %d1,%d0
 10100c6a:	6610           	bnes 10100c7c <debug+0xca>
 10100c6c:	42b9 1010 1124 	clrl 10101124 <g_asmBridge>
-10100c72:	23e7 1010 1124 	movel %sp@-,10101124 <g_asmBridge>
+10100c72:	2439 1010 1124 	movel 10101124 <g_asmBridge>,%d2
 10100c78:	6000 01fe      	braw 10100e78 <debug+0x2c6>
 10100c7c:	2079 1010 21ec 	moveal 101021ec <g_current_process>,%a0
 10100c82:	2210           	movel %a0@,%d1
@@ -1156,7 +1156,7 @@ Disassembly of section .text:
 10100ca4:	43ee fff4      	lea %fp@(-12),%a1
 10100ca8:	1191 0800      	moveb %a1@,%a0@(00000000,%d0:l)
 10100cac:	42b9 1010 1124 	clrl 10101124 <g_asmBridge>
-10100cb2:	23e7 1010 1124 	movel %sp@-,10101124 <g_asmBridge>
+10100cb2:	2439 1010 1124 	movel 10101124 <g_asmBridge>,%d2
 10100cb8:	6000 01be      	braw 10100e78 <debug+0x2c6>
 10100cbc:	4280           	clrl %d0
 10100cbe:	102e fff7      	moveb %fp@(-9),%d0
@@ -1296,7 +1296,7 @@ Disassembly of section .text:
 10100e66:	4eba fb32      	jsr %pc@(1010099a <push>)
 10100e6a:	508f           	addql #8,%sp
 10100e6c:	42b9 1010 1124 	clrl 10101124 <g_asmBridge>
-10100e72:	23e7 1010 1124 	movel %sp@-,10101124 <g_asmBridge>
+10100e72:	2439 1010 1124 	movel 10101124 <g_asmBridge>,%d2
 10100e78:	4e5e           	unlk %fp
 10100e7a:	4e75           	rts
 
