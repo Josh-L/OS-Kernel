@@ -2,8 +2,8 @@
 Allocating common symbols
 Common symbol       size              file
 
-old_stack           0x4               /tmp/ccxQYxdr.o
-main_stack          0x1000            /tmp/ccxQYxdr.o
+old_stack           0x4               /tmp/ccDNCPmo.o
+main_stack          0x1000            /tmp/ccDNCPmo.o
 
 Memory Configuration
 
@@ -13,9 +13,10 @@ ram              0x10400000         0x00100000
 
 Linker script and memory map
 
-LOAD /tmp/ccxQYxdr.o
+LOAD /tmp/ccDNCPmo.o
 LOAD dbug.o
 LOAD rtx_test_dummy.o
+LOAD Hex_to_ASCII.o
 START GROUP
 LOAD /opt/gcc-coldfire/bin/../lib/gcc/m68k-elf/4.3.2/m5307/libgcc.a
 END GROUP
@@ -25,69 +26,75 @@ END GROUP
                 0x00000000                PROVIDE (software_init_hook, 0x0)
                 0x00000000                PROVIDE (_software_init_hook, 0x0)
 
-.text           0x10400000      0x1fd
+.text           0x10400000      0x320
  *(.text)
- .text          0x10400000       0x1e /tmp/ccxQYxdr.o
+ .text          0x10400000       0x1e /tmp/ccDNCPmo.o
  *fill*         0x1040001e        0x2 00
  .text          0x10400020       0x5c dbug.o
                 0x10400040                rtx_dbug_outs
                 0x10400020                rtx_dbug_out_char
- .text          0x1040007c      0x12c rtx_test_dummy.o
+ .text          0x1040007c      0x124 rtx_test_dummy.o
                 0x1040007c                test1
-                0x10400176                test6
-                0x10400142                test4
-                0x10400190                main
-                0x104000fe                test2
-                0x1040015c                test5
-                0x10400120                test3
-                0x104001a8                . = ALIGN (0x4)
-                0x104001a8                __CTOR_LIST__ = .
-                0x104001a8        0x4 LONG 0x0 (((__CTOR_END__ - __CTOR_LIST__) / 0x4) - 0x2)
+                0x1040016e                test6
+                0x1040013a                test4
+                0x10400188                main
+                0x104000f6                test2
+                0x10400154                test5
+                0x10400118                test3
+ .text          0x104001a0      0x126 Hex_to_ASCII.o
+                0x104001a0                printHexAddress
+                0x104002c8                . = ALIGN (0x4)
+ *fill*         0x104002c6        0x2 00
+                0x104002c8                __CTOR_LIST__ = .
+                0x104002c8        0x4 LONG 0x0 (((__CTOR_END__ - __CTOR_LIST__) / 0x4) - 0x2)
  *(.ctors)
-                0x104001ac        0x4 LONG 0x0
-                0x104001b0                __CTOR_END__ = .
-                0x104001b0                __DTOR_LIST__ = .
-                0x104001b0        0x4 LONG 0x0 (((__DTOR_END__ - __DTOR_LIST__) / 0x4) - 0x2)
+                0x104002cc        0x4 LONG 0x0
+                0x104002d0                __CTOR_END__ = .
+                0x104002d0                __DTOR_LIST__ = .
+                0x104002d0        0x4 LONG 0x0 (((__DTOR_END__ - __DTOR_LIST__) / 0x4) - 0x2)
  *(.dtors)
-                0x104001b4        0x4 LONG 0x0
-                0x104001b8                __DTOR_END__ = .
+                0x104002d4        0x4 LONG 0x0
+                0x104002d8                __DTOR_END__ = .
  *(.rodata*)
- .rodata        0x104001b8       0x35 rtx_test_dummy.o
+ .rodata        0x104002d8       0x35 rtx_test_dummy.o
+ .rodata        0x1040030d        0x3 Hex_to_ASCII.o
  *(.gcc_except_table)
-                0x104001ed                __INIT_SECTION__ = .
-                0x104001ed        0x4 LONG 0x4e560000
+                0x10400310                __INIT_SECTION__ = .
+                0x10400310        0x4 LONG 0x4e560000
  *(.init)
-                0x104001f1        0x2 SHORT 0x4e5e
-                0x104001f3        0x2 SHORT 0x4e75
-                0x104001f5                __FINI_SECTION__ = .
-                0x104001f5        0x4 LONG 0x4e560000
+                0x10400314        0x2 SHORT 0x4e5e
+                0x10400316        0x2 SHORT 0x4e75
+                0x10400318                __FINI_SECTION__ = .
+                0x10400318        0x4 LONG 0x4e560000
  *(.fini)
-                0x104001f9        0x2 SHORT 0x4e5e
-                0x104001fb        0x2 SHORT 0x4e75
-                0x104001fd                _etext = .
+                0x1040031c        0x2 SHORT 0x4e5e
+                0x1040031e        0x2 SHORT 0x4e75
+                0x10400320                _etext = .
  *(.lit)
 
-.data           0x10400200        0x0
+.data           0x10400320        0x0
  *(.shdata)
  *(.data)
- .data          0x10400200        0x0 /tmp/ccxQYxdr.o
- .data          0x10400200        0x0 dbug.o
- .data          0x10400200        0x0 rtx_test_dummy.o
-                0x10400200                _edata = .
+ .data          0x10400320        0x0 /tmp/ccDNCPmo.o
+ .data          0x10400320        0x0 dbug.o
+ .data          0x10400320        0x0 rtx_test_dummy.o
+ .data          0x10400320        0x0 Hex_to_ASCII.o
+                0x10400320                _edata = .
 
-.bss            0x10400200     0x1010
-                0x10400200                __bss_start = .
+.bss            0x10400320     0x1010
+                0x10400320                __bss_start = .
  *(.shbss)
  *(.bss)
- .bss           0x10400200        0x0 /tmp/ccxQYxdr.o
- .bss           0x10400200        0x0 dbug.o
- .bss           0x10400200        0x0 rtx_test_dummy.o
+ .bss           0x10400320        0x0 /tmp/ccDNCPmo.o
+ .bss           0x10400320        0x0 dbug.o
+ .bss           0x10400320        0x0 rtx_test_dummy.o
+ .bss           0x10400320        0x0 Hex_to_ASCII.o
  *(COMMON)
- COMMON         0x10400200     0x1010 /tmp/ccxQYxdr.o
-                0x10400200                old_stack
-                0x10400210                main_stack
-                0x10401210                _end = ALIGN (0x8)
-                0x10401210                __end = _end
+ COMMON         0x10400320     0x1010 /tmp/ccDNCPmo.o
+                0x10400320                old_stack
+                0x10400330                main_stack
+                0x10401330                _end = ALIGN (0x8)
+                0x10401330                __end = _end
 
 .stab
  *(.stab)
@@ -118,6 +125,7 @@ __RTX_TEST_DATA__
                 0x10500000                g_test_fixture
 OUTPUT(rtx_test_dummy.bin elf32-m68k)
 
-.comment        0x00000000       0x4e
+.comment        0x00000000       0x75
  .comment       0x00000000       0x27 dbug.o
  .comment       0x00000027       0x27 rtx_test_dummy.o
+ .comment       0x0000004e       0x27 Hex_to_ASCII.o

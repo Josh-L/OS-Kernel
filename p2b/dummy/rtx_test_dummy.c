@@ -1,5 +1,13 @@
 #include "rtx_test.h"
 #include "dbug.h"
+#include "Hex_to_ASCII.h"
+
+//g_test_fixture.
+//g_test_fixture.release_processor();
+//g_test_fixture.get_process_priority(0)
+//g_test_fixture.set_process_priority(0, 0)
+//(UINT32) g_test_fixture.request_memory_block();
+//g_test_fixture.release_memory_block((VOID *)tmp);
 
 void test1()
 {
@@ -7,7 +15,6 @@ void test1()
     while (1) 
     {
 		rtx_dbug_out_char('1');
-		g_test_fixture.release_processor();
 		tmp = (UINT32) g_test_fixture.request_memory_block();
 		tmp = (UINT32) g_test_fixture.request_memory_block();
 		g_test_fixture.set_process_priority(3,0);
@@ -24,7 +31,7 @@ void test2()
     while (1) 
     {
 		rtx_dbug_out_char('2');
-		tmp = (UINT32)g_test_fixture.request_memory_block();
+		tmp = (UINT32) g_test_fixture.request_memory_block();
     }
 }
 
@@ -34,7 +41,7 @@ void test3()
     while (1) 
     {
 		rtx_dbug_out_char('3');
-		tmp = (UINT32)g_test_fixture.request_memory_block();
+		tmp = (UINT32) g_test_fixture.request_memory_block();
 	}
 }
 
