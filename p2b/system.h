@@ -11,7 +11,7 @@
 #define NUM_PRIORITIES		5
 
 #define MEM_BLK_SIZE 128
-#define NUM_MEM_BLKS 32
+#define NUM_MEM_BLKS 2
 
 extern BYTE __end;
 

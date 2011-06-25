@@ -46,12 +46,15 @@ VOID sys_init()
         gp_mem_pool_list[i] = g_free_mem = g_free_mem + (i * MEM_BLK_SIZE);
     }
 	
-    // Initialize priority queues
+    // Initialize priority and mem blocking queues
 	for(i = 0; i < NUM_PRIORITIES; i++)
 	{
 		g_priority_queues[i].front = 0;
 		g_priority_queues[i].back = 0;
 		g_priority_queues[i].num_slots = NUM_PROCESSES;
+		g_mem_blocking_queue[i].front = 0;
+		g_mem_blocking_queue[i].back = 0;
+		g_mem_blocking_queue[i].num_slots = NUM_PROCESSES;
 	}
 	
 	// Setup all processes
@@ -145,7 +148,6 @@ VOID scheduler( VOID )
 			g_current_process->m_state = 1;
 			if (g_current_process->m_process_ID >= 0)
 			{
-				//push(g_current_process->m_priority, g_current_process);
 				push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, g_current_process);
 			}
 		}
@@ -497,31 +499,40 @@ VOID * request_memory_block()
 {
 	VOID * freeBlock = 0;
     UINT8 i;
-	while(freeBlock == 0)
+	for (i = 0; i < NUM_MEM_BLKS; i++)
 	{
+		if (gp_mem_pool_lookup[i] == 0)
+		{
+			gp_mem_pool_lookup[i] = 1;
+			freeBlock = (VOID *)gp_mem_pool_list[i];
+			rtx_dbug_out_char('f');
+			break;
+		}
+	}
+	
+	if(freeBlock == 0)
+	{
+		/*If program reaches this point, there are no free memory blocks (freeBlock still unassigned).
+		This means the current process must be set to blocked, added to the appropriate
+		blocking queue and release processor until it is moved to the ready queue by a
+		release_memory_block operation.*/
+		rtx_dbug_out_char('n');
+		g_current_process->m_state = 0;
+		push(&g_mem_blocking_queue[g_current_process->m_priority], g_mem_blocking_queue_slots, g_current_process); //Push current process to memory_blocked queue indicating that it's waiting for a memory block
+		
+		release_processor();
+		
+		// Obtain reserved block
 		for (i = 0; i < NUM_MEM_BLKS; i++)
 		{
-			if (gp_mem_pool_lookup[i] == 0)
+			if (gp_mem_pool_lookup[i] == 2)
 			{
 				gp_mem_pool_lookup[i] = 1;
 				freeBlock = (VOID *)gp_mem_pool_list[i];
+				rtx_dbug_out_char('v');
 				break;
 			}
 		}
-		
-		if(freeBlock == 0)
-		{
-			/*If program reaches this point, there are no free memory blocks (freeBlock still unassigned).
-			  This means the current process must be set to blocked, added to the appropriate
-			  blocking queue and release processor until it is moved to the ready queue by a
-			  release_memory_block operation.
-			  
-			  g_current_process->m_state = 0;
-			  push(mem_blocked_queue,priority, g_current_process); //Push current process to appropriate blocked queue indicating that it's waiting for a memory block
-			  release_processor();  
-			*/
-		}
-	    
 	}
 	
     return freeBlock;
@@ -538,20 +549,22 @@ SINT8 release_memory_block(VOID * memory_block)
 		if (gp_mem_pool_list[i] == (UINT32)memory_block && gp_mem_pool_lookup[i] == 1)
 		{
 			gp_mem_pool_lookup[i] = 0;
+			
 			/*We must iterate through the processes blocked waiting for memory blocks, and unblock (set to ready)
 			  the highest priority process waiting for a memory block. If all blocked_mem queues are empty, that
-			  means there are no processes waiting for a memory block to become available and we can simply return.
+			  means there are no processes waiting for a memory block to become available and we can simply return.*/
 			  
-			  for(j = 0; j < NUM_PRIORITIES; j++)
-			  {
-				if(pop(mem_blocked_queue, priority, previously_blocking_proc) != -1)
+		    for(j = 0; j < NUM_PRIORITIES; j++)
+		    {
+				if(pop(&g_mem_blocking_queue[j], g_mem_blocking_queue_slots, &previously_blocking_proc) != -1)
 				{
+					rtx_dbug_out_char('r');
 					previously_blocking_proc->m_state = 1;
-					push(ready_queue, priority, previously_blocking_proc);
+					gp_mem_pool_lookup[i] = 2;  //This method was the original idea of group 24 and was used with their permission.
+					push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, previously_blocking_proc);
+					break;
 				}
-			  }
-			  
-			*/
+		    }
 			return RTX_SUCCESS;
 		}
 	}
