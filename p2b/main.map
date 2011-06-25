@@ -7,10 +7,10 @@ g_proc_table        0xf0              system.o
 g_mem_blocking_queue
                     0x32              system.o
 gp_mem_pool_list    0x80              system.o
-old_stack           0x4               /tmp/ccpxhCuk.o
+old_stack           0x4               /tmp/ccsS1qRw.o
 g_priority_queues   0x32              system.o
 gp_mem_pool_lookup  0x80              system.o
-main_stack          0x1000            /tmp/ccpxhCuk.o
+main_stack          0x1000            /tmp/ccsS1qRw.o
 g_mem_blocking_queue_slots
                     0x30              system.o
 g_current_process   0x4               system.o
@@ -23,9 +23,9 @@ ram              0x10100000         0x00100000
 
 Linker script and memory map
 
-LOAD /tmp/ccpxhCuk.o
-LOAD /tmp/ccn8xnTl.o
-LOAD /tmp/ccJbfsTn.o
+LOAD /tmp/ccsS1qRw.o
+LOAD /tmp/cciOXU5T.o
+LOAD /tmp/cc2udKwf.o
 LOAD dbug.o
 LOAD Hex_to_ASCII.o
 LOAD null_process.o
@@ -44,11 +44,11 @@ END GROUP
 
 .text           0x10100000     0x1062
  *(.text)
- .text          0x10100000       0x1e /tmp/ccpxhCuk.o
+ .text          0x10100000       0x1e /tmp/ccsS1qRw.o
  *fill*         0x1010001e        0x2 00
- .text          0x10100020       0x54 /tmp/ccn8xnTl.o
+ .text          0x10100020       0x54 /tmp/cciOXU5T.o
                 0x10100020                asm_trap_entry
- .text          0x10100074        0x8 /tmp/ccJbfsTn.o
+ .text          0x10100074        0x8 /tmp/cc2udKwf.o
                 0x10100074                trap_1_handler
  .text          0x1010007c       0x9a dbug.o
                 0x1010009c                rtx_dbug_outs
@@ -119,9 +119,9 @@ END GROUP
 .data           0x10101064        0x8
  *(.shdata)
  *(.data)
- .data          0x10101064        0x0 /tmp/ccpxhCuk.o
- .data          0x10101064        0x0 /tmp/ccn8xnTl.o
- .data          0x10101064        0x0 /tmp/ccJbfsTn.o
+ .data          0x10101064        0x0 /tmp/ccsS1qRw.o
+ .data          0x10101064        0x0 /tmp/cciOXU5T.o
+ .data          0x10101064        0x0 /tmp/cc2udKwf.o
  .data          0x10101064        0x0 dbug.o
  .data          0x10101064        0x0 Hex_to_ASCII.o
  .data          0x10101064        0x0 null_process.o
@@ -138,9 +138,9 @@ END GROUP
                 0x1010106c                __bss_start = .
  *(.shbss)
  *(.bss)
- .bss           0x1010106c        0x0 /tmp/ccpxhCuk.o
- .bss           0x1010106c        0x0 /tmp/ccn8xnTl.o
- .bss           0x1010106c        0x0 /tmp/ccJbfsTn.o
+ .bss           0x1010106c        0x0 /tmp/ccsS1qRw.o
+ .bss           0x1010106c        0x0 /tmp/cciOXU5T.o
+ .bss           0x1010106c        0x0 /tmp/cc2udKwf.o
  .bss           0x1010106c        0x0 dbug.o
  .bss           0x1010106c        0x0 Hex_to_ASCII.o
  .bss           0x1010106c        0x0 null_process.o
@@ -152,7 +152,7 @@ END GROUP
  .bss           0x10101074        0x0 process_init.o
  *(COMMON)
  *fill*         0x10101074        0xc 00
- COMMON         0x10101080     0x1010 /tmp/ccpxhCuk.o
+ COMMON         0x10101080     0x1010 /tmp/ccsS1qRw.o
                 0x10101080                old_stack
                 0x10101090                main_stack
  COMMON         0x10102090      0x2b8 system.o
