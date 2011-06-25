@@ -129,20 +129,24 @@ VOID scheduler( VOID )
 	{
 		asm("move.l %a7, g_asmBridge");
         g_current_process->m_stack = (g_asmBridge + 0xC);
-		g_current_process->m_state = 1;
-		if (g_current_process->m_process_ID != 0)
+		if(g_current_process->m_state == 2) //If calling process was running 
 		{
-			//push(g_current_process->m_priority, g_current_process);
-			push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, g_current_process);
+			g_current_process->m_state = 1;
+			if (g_current_process->m_process_ID >= 0)
+			{
+				push(g_current_process->m_priority, g_current_process);
+			}
 		}
 	}
-	g_first_run = 0; // Record that we have run the scheduler once
+	else
+	{
+		g_first_run = 0; // Record that we have run the scheduler once
+	}
 	
 	UINT8 i;
 	for(i = 0; i < NUM_PRIORITIES; i++)
 	{
-		//if(pop(i, &g_current_process) != -1)
-		if(pop(&g_priority_queues[i], g_queue_slots, &g_current_process) != -1)
+		if(pop(i, &g_current_process) != -1)
 		{
 			break;
 		}
@@ -171,12 +175,74 @@ SINT8 release_processor()
 
 SINT8 send_message(UINT8 process_ID, VOID * MessageEnvelope)
 {
-    
+	//Check if sender pid is valid. If it's not return -1.
+	UINT8 sender_pid_valid = -1;
+	
+	for(i = 0; i < NUM_PROCESSES; i++)
+	{
+		if(g_proc_table[i]->m_process_ID == process_ID)
+		{
+			sender_pid_valid = 0;
+		}
+	}
+	
+	if(sender_pid_valid == -1)
+	{
+		return -1;
+	}
+	
+    /*Insert sender and receiver PIDs into MessageEnvelope and 
+	  add message to receiving processes' message box. Check if
+	  receiving process is blocking while waiting for a message
+	  from sending process. If it is, set state to ready and add
+	  to appropriate ready queue.
+	  
+	  UINT8 i = 0;
+	  UINT16 * msg = (UINT16)MessageEnvelope;
+	  *msg = g_current_process->m_process_ID; //Put sender pid into first word of MessageEnvelope
+	  *(msg + 2) = (UINT16)process_ID; //Put receiver pid into second word of MessageEnvelope
+	  
+	  for(i = 0; i < NUM_PROCESSES; i++)
+	  {
+		if(g_proc_table[i]->m_process_ID == process_ID)
+		{
+			push(receiver_msg_box, msg);//put msg in receiver message box
+			
+			if(g_proc_table[i]->msg_waiting == g_current_process->m_process_ID)//If receiving process is currently blocking on message from sender, unblock and push to ready queue
+			{
+				g_proc_table[i]->m_state = 1;
+				push(ready_queue, g_proc_table[i]);
+			}
+			break;
+		}
+	  }
+	  
+	*/
     return 0;   
 }
 
 VOID * receive_message(UINT8 * sender_ID)
 {
+	/*Iterate through current processes message box and check if
+	  there is a msg waiting from sender_ID. If there is, return
+	  a pointer to that message. If there is not, current process
+	  blocks and releases processor.
+	  
+	  UINT8 i = 0;
+	  for(i = 0; i < NUM_PROCESSES; i++)
+	  {
+		if(*(g_current_process->msg_box[i]) == *sender_ID) //If msg from sender_ID is in msg_box, return it
+		{
+			return (VOID *)(*(g_current_process->msg_box[i]));
+		}
+	  }
+	  
+	  //No msg from sender_ID in msg_box, current process must now block.
+	  g_current_process->m_state = 0;
+	  g_current_process->msg_waiting = (SINT8)(*sender_ID); //Indicate that current process is blocking on msg from process with pid sender_ID
+	  
+	  
+	*/
     return (VOID*)0;
 }
 
@@ -417,28 +483,65 @@ SINT8 get_process_priority(UINT8 process_ID)
 	return -1;
 }
 
-VOID* request_memory_block()
+VOID * request_memory_block()
 {
+	VOID * freeBlock = 0;
     UINT8 i;
-    for (i = 0; i < NUM_MEM_BLKS; i++)
+	while(freeBlock == 0)
 	{
-		if (gp_mem_pool_lookup[i] == 0)
+		for (i = 0; i < NUM_MEM_BLKS; i++)
 		{
-			gp_mem_pool_lookup[i] = 1;
-			return (VOID*)gp_mem_pool_list[i];
+			if (gp_mem_pool_lookup[i] == 0)
+			{
+				gp_mem_pool_lookup[i] = 1;
+				freeBlock = (VOID *)gp_mem_pool_list[i];
+				break;
+			}
 		}
+		
+		if(freeBlock == 0)
+		{
+			/*If program reaches this point, there are no free memory blocks (freeBlock still unassigned).
+			  This means the current process must be set to blocked, added to the appropriate
+			  blocking queue and release processor until it is moved to the ready queue by a
+			  release_memory_block operation.
+			  
+			  g_current_process->m_state = 0;
+			  push(mem_blocked_queue,priority, g_current_process); //Push current process to appropriate blocked queue indicating that it's waiting for a memory block
+			  release_processor();  
+			*/
+		}
+	    
 	}
-    return NULL;
+	
+    return freeBlock;
 }
 
-UINT8 s_release_memory_block( VOID* memory_block )
+SINT8 release_memory_block( VOID * memory_block )
 {
+	struct s_pcb * previously_blocking_proc;
     UINT8 i;
+	UINT8 j;
+	
     for (i = 0; i < NUM_MEM_BLKS; i++)
 	{
 		if (gp_mem_pool_list[i] == (UINT32)memory_block && gp_mem_pool_lookup[i] == 1)
 		{
 			gp_mem_pool_lookup[i] = 0;
+			/*We must iterate through the processes blocked waiting for memory blocks, and unblock (set to ready)
+			  the highest priority process waiting for a memory block. If all blocked_mem queues are empty, that
+			  means there are no processes waiting for a memory block to become available and we can simply return.
+			  
+			  for(j = 0; j < NUM_PRIORITIES; j++)
+			  {
+				if(pop(mem_blocked_queue, priority, previously_blocking_proc) != -1)
+				{
+					previously_blocking_proc->m_state = 1;
+					push(ready_queue, priority, previously_blocking_proc);
+				}
+			  }
+			  
+			*/
 			return RTX_SUCCESS;
 		}
 	}
