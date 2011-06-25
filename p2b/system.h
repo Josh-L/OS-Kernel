@@ -36,6 +36,7 @@ struct s_pcb_queue
 {
 	struct s_pcb_queue_item * front;
 	struct s_pcb_queue_item * back;
+	UINT8 num_slots;
 };
 
 //Function prototypes
@@ -44,8 +45,10 @@ VOID    scheduler( VOID );
 SINT8   release_processor();
 SINT8   send_message(UINT8 process_ID, VOID * MessageEnvelope);
 VOID  * receive_message(UINT8 * sender_ID);
-SINT8 pop(UINT8 priority, struct s_pcb ** catcher);
-SINT8 push(UINT8 priority, struct s_pcb * new_back);
+//SINT8 pop(UINT8 priority, struct s_pcb ** catcher);
+//SINT8 push(UINT8 priority, struct s_pcb * new_back);
+SINT8 push(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb * new_back);
+SINT8 pop(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb ** catcher);
 SINT8   set_process_priority(UINT8 process_ID, UINT8 priority);
 VOID iterate(UINT8 priority);
 void init_memory();

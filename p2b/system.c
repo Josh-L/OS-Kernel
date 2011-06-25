@@ -48,6 +48,7 @@ VOID sys_init()
 	{
 		g_priority_queues[i].front = 0;
 		g_priority_queues[i].back = 0;
+		g_priority_queues[i].num_slots = NUM_PROCESSES;
 	}
 	
 	// Setup all processes
@@ -64,7 +65,8 @@ VOID sys_init()
 		g_queue_slots[i].next = 0;
 		
 		// Push process into proper priority queue
-		push(g_proc_table[i].m_priority, &g_proc_table[i]);
+		//push(g_proc_table[i].m_priority, &g_proc_table[i]);
+		push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
 		
 		// Setup blank ESF
 		addr = g_proc_table[i].m_stack;
@@ -83,14 +85,14 @@ VOID sys_init()
 		// Set the process stack pointer to the top of the stack
 		g_proc_table[i].m_stack = addr;
 		
-		// Stack information output
+		/*// Stack information output
 		rtx_dbug_outs("Process ");
 		printHexAddress(i);
 		rtx_dbug_outs(":\r\nStack begins := ");
 		printHexAddress(g_proc_table[i].m_stack);
 		rtx_dbug_outs(", Entry := ");
 		printHexAddress(g_proc_table[i].m_entry);
-		rtx_dbug_outs("\r\n");
+		rtx_dbug_outs("\r\n");*/
 	}
 	
 	asm("move.l %a7, g_asmBridge"); //Save kernel stack location
@@ -130,15 +132,17 @@ VOID scheduler( VOID )
 		g_current_process->m_state = 1;
 		if (g_current_process->m_process_ID != 0)
 		{
-			push(g_current_process->m_priority, g_current_process);
+			//push(g_current_process->m_priority, g_current_process);
+			push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, g_current_process);
 		}
 	}
 	g_first_run = 0; // Record that we have run the scheduler once
-
+	
 	UINT8 i;
 	for(i = 0; i < NUM_PRIORITIES; i++)
 	{
-		if(pop(i, &g_current_process) != -1)
+		//if(pop(i, &g_current_process) != -1)
+		if(pop(&g_priority_queues[i], g_queue_slots, &g_current_process) != -1)
 		{
 			break;
 		}
@@ -165,24 +169,6 @@ SINT8 release_processor()
 	return 0;
 }
 
-VOID iterate(UINT8 priority)
-{
-	struct s_pcb_queue_item * temp = g_priority_queues[priority].front;
-
-	while (temp != g_priority_queues[priority].back)
-	{
-		printHexAddress(temp->data->m_process_ID);
-		rtx_dbug_outs("\r\n");
-		temp = temp->next;
-	}
-	if (g_priority_queues[priority].front != 0)
-	{
-		printHexAddress(temp->data->m_process_ID);
-		rtx_dbug_outs("\r\n");
-	}
-	rtx_dbug_outs("Done\r\n");
-}
-
 SINT8 send_message(UINT8 process_ID, VOID * MessageEnvelope)
 {
     
@@ -194,68 +180,57 @@ VOID * receive_message(UINT8 * sender_ID)
     return (VOID*)0;
 }
 
-SINT8 pop(UINT8 priority, struct s_pcb ** catcher)
+SINT8 pop(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb ** catcher)
 {
-	if (priority < 0 || priority > (NUM_PRIORITIES - 2))
+    if (queue->front == 0)
 	{
 		return -1;
 	}
-	
-    if (g_priority_queues[priority].front == 0)
+	*catcher = queue->front->data;
+	queue->front->data = 0;
+	if (queue->front == queue->back)
 	{
-		return -1;
-	}
-	
-	*catcher = g_priority_queues[priority].front->data;
-	g_priority_queues[priority].front->data = 0;
-	
-	if (g_priority_queues[priority].front == g_priority_queues[priority].back)
-	{
-		g_priority_queues[priority].front = 0;
-		g_priority_queues[priority].back = 0;
+		queue->front = 0;
+		queue->back = 0;
 	}
 	else
 	{
-		g_priority_queues[priority].front = g_priority_queues[priority].front->next;
+		queue->front = queue->front->next;
 	}
 	
     return 0;
 }
 
-SINT8 push(UINT8 priority, struct s_pcb * new_back)
+SINT8 push(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb * new_back)
 {
-    if (priority < 0 || priority > (NUM_PRIORITIES - 2))
-	{
-		return -1;
-	}
-	
 	// Find a free node to use
 	UINT8 i = 0;
-	for (i = 0; i < NUM_PROCESSES; i++)
+	for (i = 0; i < queue->num_slots; i++)
 	{
-		if(g_queue_slots[i].data == 0)
+		
+		if(slots[i].data == 0)
 		{
 			break;
 		}
 	}
 	
 	// Trying to push a process that is already on the queues
-	if (i == NUM_PROCESSES)
+	if (i == queue->num_slots)
 	{
 		return -1;
 	}
 	
-	g_queue_slots[i].data = new_back;
+	slots[i].data = new_back;
 	
-	if (g_priority_queues[priority].back == 0)
+	if (queue->back == 0)
 	{
-		g_priority_queues[priority].front = &g_queue_slots[i];
+		queue->front = &slots[i];
 	}
 	else
 	{
-		g_priority_queues[priority].back->next = &g_queue_slots[i];
+		queue->back->next = &slots[i];
 	}
-	g_priority_queues[priority].back = &g_queue_slots[i];
+	queue->back = &slots[i];
 	
     return 0;
 }
@@ -387,16 +362,14 @@ VOID set_process_priority_trap_handler()
 	else if (g_priority_queues[oldPriority].front->data == &g_proc_table[i])
 	{
 		struct s_pcb * temp;
-		pop(oldPriority, &temp);
-		//g_priority_queues[oldPriority].front->data = 0;
-		//g_priority_queues[oldPriority].front = g_priority_queues[oldPriority].front->next;
+		//pop(oldPriority, &temp);
 	}
 	else
 	{
 		if (g_priority_queues[oldPriority].front == g_priority_queues[oldPriority].back)
 		{
 			struct s_pcb * temp;
-			pop(oldPriority, &temp);
+			//pop(oldPriority, &temp);
 		}
 		else
 			{
@@ -424,7 +397,7 @@ VOID set_process_priority_trap_handler()
 	g_proc_table[i].m_priority = priority;
 	
 	// Now push to new priority queue
-	push(priority, &g_proc_table[i]);
+	//push(priority, &g_proc_table[i]);
 	
 	//Put return value in d2
         g_asmBridge =  0;
