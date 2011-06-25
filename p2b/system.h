@@ -20,9 +20,11 @@ struct s_pcb
 {
     UINT32  m_process_ID;
     UINT8   m_priority;
-    UINT8   m_state;       //0 blocked, 1 ready, 2 running
+    UINT8   m_state;       // 0 blocked, 1 ready, 2 running
     UINT32  m_stack;
     VOID    (*m_entry)();
+	SINT8	msg_waiting; // This is the process id that this process is waiting for a message from. -1 means not waiting
+	UINT32	msg_box[NUM_PROCESSES]; // This array holds all the messages that are inbound to this process
 };
 
 struct s_pcb_queue_item

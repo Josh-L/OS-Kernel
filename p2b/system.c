@@ -7,8 +7,12 @@ UINT32 						gp_mem_pool_list[NUM_MEM_BLKS]; // List of addresses of memory bloc
 struct s_pcb        		g_proc_table[NUM_PROCESSES];
 struct s_pcb 	    		*g_current_process;
 
-struct s_pcb_queue			g_priority_queues[NUM_PRIORITIES]; // 0 to 3 priority, don't worry about NULL process priority
+struct s_pcb_queue			g_priority_queues[NUM_PRIORITIES];
 struct s_pcb_queue_item 	g_queue_slots[NUM_PROCESSES]; // Have an array of ready queue slots
+
+// Array of queues to hold processes that are blocked waiting on memory
+struct s_pcb_queue			g_mem_blocking_queue[NUM_PRIORITIES];
+struct s_pcb_queue_item 	g_mem_blocking_queue_slots[NUM_PROCESSES];
 
 UINT32						*g_kernelStack = 0; // Pointer to kernel stack
 UINT32						g_asmBridge = 0;
@@ -60,12 +64,21 @@ VOID sys_init()
 		g_proc_table[i].m_entry = process_init_table[i].m_entry;
 		g_proc_table[i].m_stack = g_free_mem = g_free_mem + process_init_table[i].m_stack;
 		
+		// Initialze message box and message waiting data structures
+		g_proc_table[i].msg_waiting = -1;
+		UINT8 k = 0;
+		for(k = 0; k < NUM_PROCESSES; k++)
+		{
+			g_proc_table[i].msg_box[k] = 0;
+		}
+		
 		// Setup a blank queue slot for this process
 		g_queue_slots[i].data = 0;
 		g_queue_slots[i].next = 0;
+		g_mem_blocking_queue_slots[i].data = 0;
+		g_mem_blocking_queue_slots[i].next = 0;
 		
 		// Push process into proper priority queue
-		//push(g_proc_table[i].m_priority, &g_proc_table[i]);
 		push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
 		
 		// Setup blank ESF
@@ -75,7 +88,6 @@ VOID sys_init()
 		*addr = 0x40000000;
 		
 		// Push blank data and address register values to the stack to restore on first run
-		UINT8 k = 0;
 		for(k = 0; k < 15; k++)
 		{
 			addr--;
@@ -207,7 +219,6 @@ SINT8 push(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s
 	UINT8 i = 0;
 	for (i = 0; i < queue->num_slots; i++)
 	{
-		
 		if(slots[i].data == 0)
 		{
 			break;
@@ -297,8 +308,6 @@ VOID set_process_priority_trap_handler()
 	priority = (UINT8)(g_asmBridge);
 	asm("move.l %d2, g_asmBridge");
 	process_ID = (UINT8)(g_asmBridge);
-	printHexAddress(priority);
-	printHexAddress(process_ID);
 	
 	// Check valid priority
 	if (priority < 0 || priority > (NUM_PRIORITIES - 2))
@@ -324,29 +333,29 @@ VOID set_process_priority_trap_handler()
 	// If the process ID doesn't exist
 	if (i == NUM_PROCESSES)
 	{
-		 //Put return value in d2
-                g_asmBridge =  -1;
-                asm("move.l g_asmBridge, %d2");
-                return;
+		//Put return value in d2
+		g_asmBridge =  -1;
+		asm("move.l g_asmBridge, %d2");
+		return;
 	}
 	
 	// If the new priority is the same as the old, just return
 	if (oldPriority == priority)
 	{
-		 //Put return value in d2
-                g_asmBridge =  0;
-                asm("move.l g_asmBridge, %d2");
-                return;
+		//Put return value in d2
+		g_asmBridge =  0;
+		asm("move.l g_asmBridge, %d2");
+		return;
 
 	}
 	
 	if(g_current_process->m_process_ID == process_ID)
 	{
 		g_proc_table[i].m_priority = priority;
-		 //Put return value in d2
-                g_asmBridge =  0;
-                asm("move.l g_asmBridge, %d2");
-                return;
+		//Put return value in d2
+		g_asmBridge =  0;
+		asm("move.l g_asmBridge, %d2");
+		return;
 
 	}
 	
@@ -362,14 +371,14 @@ VOID set_process_priority_trap_handler()
 	else if (g_priority_queues[oldPriority].front->data == &g_proc_table[i])
 	{
 		struct s_pcb * temp;
-		//pop(oldPriority, &temp);
+		pop(&g_priority_queues[oldPriority], g_queue_slots, &temp);
 	}
 	else
 	{
 		if (g_priority_queues[oldPriority].front == g_priority_queues[oldPriority].back)
 		{
 			struct s_pcb * temp;
-			//pop(oldPriority, &temp);
+			pop(&g_priority_queues[oldPriority], g_queue_slots, &temp);
 		}
 		else
 			{
@@ -397,11 +406,11 @@ VOID set_process_priority_trap_handler()
 	g_proc_table[i].m_priority = priority;
 	
 	// Now push to new priority queue
-	//push(priority, &g_proc_table[i]);
+	push(&g_priority_queues[priority], g_queue_slots, &g_proc_table[i]);
 	
 	//Put return value in d2
-        g_asmBridge =  0;
-        asm("move.l g_asmBridge, %d2");
+	g_asmBridge =  0;
+	asm("move.l g_asmBridge, %d2");
 }
 
 SINT8 get_process_priority(UINT8 process_ID)
