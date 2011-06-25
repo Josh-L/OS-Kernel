@@ -1,0 +1,199 @@
+
+Allocating common symbols
+Common symbol       size              file
+
+g_queue_slots       0x30              system.o
+g_proc_table        0xf0              main_rtx.o
+g_mem_blocking_queue
+                    0x32              system.o
+gp_mem_pool_list    0x8               system.o
+old_stack           0x4               /tmp/ccfSMcEW.o
+g_priority_queues   0x32              system.o
+gp_mem_pool_lookup  0x8               system.o
+main_stack          0x1000            /tmp/ccfSMcEW.o
+g_mem_blocking_queue_slots
+                    0x30              system.o
+g_current_process   0x4               system.o
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+ram              0x10100000         0x00100000
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+LOAD /tmp/ccfSMcEW.o
+LOAD /tmp/ccinXXEJ.o
+LOAD /tmp/ccbXwDVu.o
+LOAD /tmp/cccVy4Lg.o
+LOAD /tmp/ccdDgxg5.o
+LOAD /tmp/cc0TrI9T.o
+LOAD /tmp/ccnFt9QI.o
+LOAD /tmp/cckFh0Wx.o
+LOAD system.o
+LOAD dbug.o
+LOAD main_rtx.o
+START GROUP
+LOAD /opt/gcc-coldfire/bin/../lib/gcc/m68k-elf/4.3.2/m5307/libgcc.a
+END GROUP
+                0x00000000                __DYNAMIC = 0x0
+                0x00000000                PROVIDE (hardware_init_hook, 0x0)
+                0x00000000                PROVIDE (_hardware_init_hook, 0x0)
+                0x00000000                PROVIDE (software_init_hook, 0x0)
+                0x00000000                PROVIDE (_software_init_hook, 0x0)
+
+.text           0x10100000     0x10bd
+ *(.text)
+ .text          0x10100000       0x1e /tmp/ccfSMcEW.o
+ *fill*         0x1010001e        0x2 00
+ .text          0x10100020       0x54 /tmp/ccinXXEJ.o
+                0x10100020                release_proc_trap
+ .text          0x10100074        0x8 /tmp/ccbXwDVu.o
+                0x10100074                set_proc_priority_trap
+ .text          0x1010007c        0x2 /tmp/cccVy4Lg.o
+                0x1010007c                get_proc_priority_trap
+ *fill*         0x1010007e        0x2 00
+ .text          0x10100080        0x2 /tmp/ccdDgxg5.o
+                0x10100080                request_mem_block_trap
+ *fill*         0x10100082        0x2 00
+ .text          0x10100084        0x2 /tmp/cc0TrI9T.o
+                0x10100084                release_mem_block_trap
+ *fill*         0x10100086        0x2 00
+ .text          0x10100088        0x2 /tmp/ccnFt9QI.o
+                0x10100088                send_msg_trap
+ *fill*         0x1010008a        0x2 00
+ .text          0x1010008c        0x2 /tmp/cckFh0Wx.o
+                0x1010008c                receive_msg_trap
+ *fill*         0x1010008e        0x2 00
+ .text          0x10100090      0xde0 system.o
+                0x10100090                sys_init
+                0x10100b48                get_process_priority
+                0x10100bca                request_memory_block
+                0x1010073a                set_process_priority
+                0x1010058c                send_message
+                0x1010043c                scheduler
+                0x10100d14                release_memory_block
+                0x101005fa                pop
+                0x101007d2                set_process_priority_trap_handler
+                0x101005f0                receive_message
+                0x10100e58                delayed_send
+                0x10100544                release_processor
+                0x10100668                push
+ .text          0x10100e70       0x5c dbug.o
+                0x10100e90                rtx_dbug_outs
+                0x10100e70                rtx_dbug_out_char
+ .text          0x10100ecc      0x166 main_rtx.o
+                0x10100ecc                __main
+                0x10100ed6                main
+                0x10101034                . = ALIGN (0x4)
+ *fill*         0x10101032        0x2 00
+                0x10101034                __CTOR_LIST__ = .
+                0x10101034        0x4 LONG 0x0 (((__CTOR_END__ - __CTOR_LIST__) / 0x4) - 0x2)
+ *(.ctors)
+                0x10101038        0x4 LONG 0x0
+                0x1010103c                __CTOR_END__ = .
+                0x1010103c                __DTOR_LIST__ = .
+                0x1010103c        0x4 LONG 0x0 (((__DTOR_END__ - __DTOR_LIST__) / 0x4) - 0x2)
+ *(.dtors)
+                0x10101040        0x4 LONG 0x0
+                0x10101044                __DTOR_END__ = .
+ *(.rodata*)
+ .rodata        0x10101044       0x15 system.o
+ .rodata        0x10101059       0x54 main_rtx.o
+ *(.gcc_except_table)
+                0x101010ad                __INIT_SECTION__ = .
+                0x101010ad        0x4 LONG 0x4e560000
+ *(.init)
+                0x101010b1        0x2 SHORT 0x4e5e
+                0x101010b3        0x2 SHORT 0x4e75
+                0x101010b5                __FINI_SECTION__ = .
+                0x101010b5        0x4 LONG 0x4e560000
+ *(.fini)
+                0x101010b9        0x2 SHORT 0x4e5e
+                0x101010bb        0x2 SHORT 0x4e75
+                0x101010bd                _etext = .
+ *(.lit)
+
+.data           0x101010c0        0x8
+ *(.shdata)
+ *(.data)
+ .data          0x101010c0        0x0 /tmp/ccfSMcEW.o
+ .data          0x101010c0        0x0 /tmp/ccinXXEJ.o
+ .data          0x101010c0        0x0 /tmp/ccbXwDVu.o
+ .data          0x101010c0        0x0 /tmp/cccVy4Lg.o
+ .data          0x101010c0        0x0 /tmp/ccdDgxg5.o
+ .data          0x101010c0        0x0 /tmp/cc0TrI9T.o
+ .data          0x101010c0        0x0 /tmp/ccnFt9QI.o
+ .data          0x101010c0        0x0 /tmp/cckFh0Wx.o
+ .data          0x101010c0        0x1 system.o
+                0x101010c0                g_first_run
+ *fill*         0x101010c1        0x3 00
+ .data          0x101010c4        0x0 dbug.o
+ .data          0x101010c4        0x4 main_rtx.o
+                0x101010c4                g_free_mem
+                0x101010c8                _edata = .
+
+.bss            0x101010c8     0x11e0
+                0x101010c8                __bss_start = .
+ *(.shbss)
+ *(.bss)
+ .bss           0x101010c8        0x0 /tmp/ccfSMcEW.o
+ .bss           0x101010c8        0x0 /tmp/ccinXXEJ.o
+ .bss           0x101010c8        0x0 /tmp/ccbXwDVu.o
+ .bss           0x101010c8        0x0 /tmp/cccVy4Lg.o
+ .bss           0x101010c8        0x0 /tmp/ccdDgxg5.o
+ .bss           0x101010c8        0x0 /tmp/cc0TrI9T.o
+ .bss           0x101010c8        0x0 /tmp/ccnFt9QI.o
+ .bss           0x101010c8        0x0 /tmp/cckFh0Wx.o
+ .bss           0x101010c8        0x8 system.o
+                0x101010cc                g_asmBridge
+                0x101010c8                g_kernelStack
+ .bss           0x101010d0        0x0 dbug.o
+ .bss           0x101010d0        0x0 main_rtx.o
+ *(COMMON)
+ COMMON         0x101010d0     0x1010 /tmp/ccfSMcEW.o
+                0x101010d0                old_stack
+                0x101010e0                main_stack
+ COMMON         0x101020e0       0xd8 system.o
+                0x101020e0                g_queue_slots
+                0x10102110                g_mem_blocking_queue
+                0x10102142                gp_mem_pool_list
+                0x1010214a                g_priority_queues
+                0x1010217c                gp_mem_pool_lookup
+                0x10102184                g_mem_blocking_queue_slots
+                0x101021b4                g_current_process
+ COMMON         0x101021b8       0xf0 main_rtx.o
+                0x101021b8                g_proc_table
+                0x101022a8                _end = ALIGN (0x8)
+                0x101022a8                __end = _end
+
+.stab
+ *(.stab)
+
+.stabstr
+ *(.stabstr)
+
+__REGISTER_RTX__
+                0x10300000       0x84
+                0x10300000                __REGISTER_RTX_ENTRY__ = <code 345> (.)
+ *(__REGISTER_RTX__)
+ __REGISTER_RTX__
+                0x10300000       0x84 main_rtx.o
+                0x10300000                register_rtx
+                0x10380000                __REGISTER_TEST_PROCS_ENTRY__ = 0x10380000
+                0x10400000                __RTX_TEST_CODE_ENTRY__ = 0x10400000
+
+__RTX_TEST_DATA__
+                0x10500000       0x5c
+ *(__RTX_TEST_DATA__)
+ __RTX_TEST_DATA__
+                0x10500000       0x5c main_rtx.o
+                0x10500020                g_test_proc
+                0x10500000                g_test_fixture
+OUTPUT(system.bin elf32-m68k)
+
+.comment        0x00000000       0x75
+ .comment       0x00000000       0x27 system.o
+ .comment       0x00000027       0x27 dbug.o
+ .comment       0x0000004e       0x27 main_rtx.o
