@@ -15,7 +15,7 @@ OBJDUMP=m68k-elf-objdump
 ASM=./start.s scheduler_trap.s proc_priority_trap.s
 LDFLAGS = -Trtx.ld -Wl,-Map=main.map
 
-OBJS=dbug.o Hex_to_ASCII.o null_process.o dummy_processes.o system.o main.o
+OBJS=dbug.o Hex_to_ASCII.o null_process.o dummy_processes.o system.o main.o process_init.o
 
 # Note, GCC builds things in order, it's important to put yhe
 #  ASM first, so that it is located at the beginning of our program.
@@ -26,7 +26,10 @@ main.s19: scheduler_trap.s proc_priority_trap.s $(OBJS)
 
 system.o: system.h system.c
 	$(CC) $(CFLAGS) -c system.c
-	
+
+process_init.o: process_init.h process_init.c
+	$(CC) $(CFLAGS) -c process_init.c
+
 dummy_processes.o: dummy_processes.c dummy_processes.h
 	$(CC) $(CFLAGS) -c dummy_processes.c dummy_processes.h
 

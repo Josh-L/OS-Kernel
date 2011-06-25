@@ -1,11 +1,11 @@
+#ifndef __SYSTEM__
+#define __SYSTEM__
 #include "rtx_inc.h"
 #include "dummy_processes.h"
 #include "null_process.h"
 #include "Hex_to_ASCII.h"
 #include "dbug.h"
-
-#ifndef __SYSTEM__
-#define __SYSTEM__
+#include "process_init.h"
 
 #define KERNEL_STACK_SIZE	2048 // Another temporary value that is suitable for now
 #define NUM_PRIORITIES		5
@@ -53,8 +53,7 @@ SINT8 push(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s
 SINT8 pop(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb ** catcher);
 SINT8   set_process_priority(UINT8 process_ID, UINT8 priority);
 VOID iterate(UINT8 priority);
-void init_memory();
-void* request_memory_block();
-int release_memory_block( void* memory_block );
+VOID* request_memory_block();
+SINT8 release_memory_block(VOID * memory_block);
 
 #endif

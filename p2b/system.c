@@ -1,5 +1,4 @@
 #include "system.h"
-#include "process_init.h"
 
 BOOLEAN 					gp_mem_pool_lookup[NUM_MEM_BLKS]; // Stores whether or not the corresponding 
 UINT32 						gp_mem_pool_list[NUM_MEM_BLKS]; // List of addresses of memory blocks
@@ -146,7 +145,8 @@ VOID scheduler( VOID )
 			g_current_process->m_state = 1;
 			if (g_current_process->m_process_ID >= 0)
 			{
-				push(g_current_process->m_priority, g_current_process);
+				//push(g_current_process->m_priority, g_current_process);
+				push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, g_current_process);
 			}
 		}
 	}
@@ -158,7 +158,8 @@ VOID scheduler( VOID )
 	UINT8 i;
 	for(i = 0; i < NUM_PRIORITIES; i++)
 	{
-		if(pop(i, &g_current_process) != -1)
+		//if(pop(i, &g_current_process) != -1)
+		if(pop(&g_priority_queues[i], g_queue_slots, &g_current_process) != -1)
 		{
 			break;
 		}
@@ -189,10 +190,10 @@ SINT8 send_message(UINT8 process_ID, VOID * MessageEnvelope)
 {
 	//Check if sender pid is valid. If it's not return -1.
 	UINT8 sender_pid_valid = -1;
-	
+	UINT8 i = 0;
 	for(i = 0; i < NUM_PROCESSES; i++)
 	{
-		if(g_proc_table[i]->m_process_ID == process_ID)
+		if(g_proc_table[i].m_process_ID == process_ID)
 		{
 			sender_pid_valid = 0;
 		}
@@ -526,7 +527,7 @@ VOID * request_memory_block()
     return freeBlock;
 }
 
-SINT8 release_memory_block( VOID * memory_block )
+SINT8 release_memory_block(VOID * memory_block)
 {
 	struct s_pcb * previously_blocking_proc;
     UINT8 i;

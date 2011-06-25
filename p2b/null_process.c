@@ -1,4 +1,3 @@
-#include "rtx_inc.h"
 #include "system.h"
 
 VOID null_process()
