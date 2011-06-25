@@ -1,6 +1,6 @@
-	.globl asm_trap_entry
+	.globl release_proc_trap
 	.even
-asm_trap_entry:
+release_proc_trap:
 	
 	add.l #4, %a7
 	move.l g_asmBridge, (%a7)

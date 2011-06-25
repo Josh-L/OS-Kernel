@@ -28,10 +28,20 @@ VOID sys_init()
 	asm("move.l g_asmBridge, %a7");
 	      
 	// Insert TRAP subroutines into vector table
-	asm( "move.l #asm_trap_entry,%d0" );
-	asm( "move.l %d0,0x10000080" );	
-	asm( "move.l #trap_1_handler,%d0" );
-	asm( "move.l %d0,0x10000084" );
+	asm("move.l #release_proc_trap,%d0");
+	asm("move.l %d0,0x10000080");	
+	asm("move.l #set_proc_priority_trap,%d0");
+	asm("move.l %d0,0x10000084");
+	asm("move.l #get_proc_priority_trap,%d0");
+	asm("move.l %d0,0x10000088");
+	asm("move.l #request_mem_block_trap,%d0");
+	asm("move.l %d0,0x1000008C");
+	asm("move.l #release_mem_block_trap,%d0");
+	asm("move.l %d0,0x10000090");
+	asm("move.l #send_msg_trap,%d0");
+	asm("move.l %d0,0x10000094");
+	asm("move.l #receive_msg_trap,%d0");
+	asm("move.l %d0,0x10000098");
 	
 	// Setting the status register to allow interrupts, not needed now
 	//asm( "move.w #0x2000,%SR" );

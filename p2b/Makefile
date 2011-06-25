@@ -12,14 +12,14 @@ AR=m68k-elf-ar
 ARFLAGS=
 OBJCPY=m68k-elf-objcopy
 OBJDUMP=m68k-elf-objdump
-ASM=./start.s scheduler_trap.s proc_priority_trap.s
+ASM=./start.s release_proc_trap.s set_proc_priority_trap.s get_proc_priority_trap.s request_mem_block_trap.s release_mem_block_trap.s send_msg_trap.s receive_msg_trap.s
 LDFLAGS = -Trtx.ld -Wl,-Map=main.map
 
 OBJS=dbug.o Hex_to_ASCII.o null_process.o dummy_processes.o system.o main.o process_init.o
 
 # Note, GCC builds things in order, it's important to put yhe
 #  ASM first, so that it is located at the beginning of our program.
-main.s19: scheduler_trap.s proc_priority_trap.s $(OBJS) 
+main.s19: release_proc_trap.s set_proc_priority_trap.s get_proc_priority_trap.s request_mem_block_trap.s release_mem_block_trap.s send_msg_trap.s receive_msg_trap.s $(OBJS) 
 	$(CC) $(CFLAGS) $(LDFLAGS) -o main.bin $(ASM) $(OBJS) 
 	$(OBJCPY) --output-format=srec main.bin main.s19
 	$(OBJDUMP) -xdC main.bin > main.lst
