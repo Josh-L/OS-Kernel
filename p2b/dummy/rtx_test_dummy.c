@@ -11,27 +11,29 @@
 
 void test1()
 {
-	UINT32 tmp = 0;
+	UINT32 * tmp = 2;
     while (1) 
     {
 		rtx_dbug_out_char('1');
+		// Build message
 		tmp = (UINT32) g_test_fixture.request_memory_block();
-		tmp = (UINT32) g_test_fixture.request_memory_block();
-		g_test_fixture.set_process_priority(3,0);
-		g_test_fixture.set_process_priority(2,1);
-		g_test_fixture.set_process_priority(1,2);
+		*(tmp + 2) = 0x00000009;
+		*(tmp + 3) = 0xFFFFFFFF;
+		
+		g_test_fixture.send_message(2, tmp);
 		g_test_fixture.release_processor();
-		g_test_fixture.release_memory_block((VOID *)tmp);
     }
 }
 
 void test2()
 {
-    UINT32 tmp = 0;
+    UINT8 tmp = 1;
     while (1) 
     {
 		rtx_dbug_out_char('2');
-		tmp = (UINT32) g_test_fixture.request_memory_block();
+		g_test_fixture.receive_message(&tmp);
+		
+		g_test_fixture.release_processor();
     }
 }
 
@@ -41,7 +43,7 @@ void test3()
     while (1) 
     {
 		rtx_dbug_out_char('3');
-		tmp = (UINT32) g_test_fixture.request_memory_block();
+		g_test_fixture.release_processor();
 	}
 }
 

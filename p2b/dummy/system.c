@@ -17,8 +17,8 @@ UINT32						*g_kernelStack = 0; // Pointer to kernel stack
 UINT32						g_asmBridge = 0;
 UINT8						g_first_run = 1;
 
-extern struct s_pcb        		g_proc_table[NUM_PROCESSES];
-extern  UINT32						g_free_mem; // Keep track of the beginning of the free memory region
+extern struct s_pcb        	g_proc_table[NUM_PROCESSES];
+extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory region
 
 //Function definitions
 VOID sys_init()
@@ -193,8 +193,68 @@ SINT8 release_processor()
 	return 0;
 }
 
-SINT8 send_message(UINT8 process_ID, VOID * MessageEnvelope)
+SINT8 send_message(UINT8 process_ID, VOID * messageEnvelope)
 {
+	SINT8 returnVal = 0;
+	
+	//Backup address and data registers
+	asm("move.l %d0, -(%a7)");
+	asm("move.l %d1, -(%a7)");
+	asm("move.l %d2, -(%a7)");
+	asm("move.l %d3, -(%a7)");
+	asm("move.l %d4, -(%a7)");
+	asm("move.l %d5, -(%a7)");
+	asm("move.l %d6, -(%a7)");
+	asm("move.l %d7, -(%a7)");
+	asm("move.l %a0, -(%a7)");
+	asm("move.l %a1, -(%a7)");
+	asm("move.l %a2, -(%a7)");
+	asm("move.l %a3, -(%a7)");
+	asm("move.l %a4, -(%a7)");
+	asm("move.l %a5, -(%a7)");
+	asm("move.l %a6, -(%a7)");
+	
+	//Place process_ID and messageEnvelope into d2 and d3 respectively to pass to send_message_trap_handler
+	g_asmBridge = (UINT32)process_ID;
+	asm("move.l g_asmBridge, %d2");
+	g_asmBridge = (UINT32 *)messageEnvelope;
+	asm("move.l g_asmBridge, %d3");
+	
+	asm("TRAP #5");
+	
+	//Take return value from d1
+	asm("move.l %d1, g_asmBridge");
+	returnVal = (SINT8)g_asmBridge;
+	
+	asm("move.l (%a7)+, %a6");
+	asm("move.l (%a7)+, %a5");
+	asm("move.l (%a7)+, %a4");
+	asm("move.l (%a7)+, %a3");
+	asm("move.l (%a7)+, %a2");
+	asm("move.l (%a7)+, %a1");
+	asm("move.l (%a7)+, %a0");
+	asm("move.l (%a7)+, %d7");
+	asm("move.l (%a7)+, %d6");
+	asm("move.l (%a7)+, %d5");
+	asm("move.l (%a7)+, %d4");
+	asm("move.l (%a7)+, %d3");
+	asm("move.l (%a7)+, %d2");
+	asm("move.l (%a7)+, %d1");
+	asm("move.l (%a7)+, %d0");
+	
+	return returnVal;
+}
+
+VOID send_message_trap_handler()
+{
+	UINT8 process_ID;
+	VOID * messageEnvelope;
+	
+	asm("move.l %d2, g_asmBridge");
+	process_ID = (UINT8)g_asmBridge;
+	asm("move.l %d3, g_asmBridge");
+	messageEnvelope = (VOID *)g_asmBridge;
+
 	//Check if process_ID is valid. If it's not return -1.
 	UINT8 process_ID_valid = -1;
 	UINT8 i = 0;
@@ -208,77 +268,146 @@ SINT8 send_message(UINT8 process_ID, VOID * MessageEnvelope)
 	
 	if(process_ID_valid == -1)
 	{
-		return -1;
+		g_asmBridge = -1;
+		asm("move.l g_asmBridge, %d1");
+		return;
 	}
 	
-    /*Insert sender and receiver PIDs into MessageEnvelope and 
-	  add message to receiving processes' message box. Check if
-	  receiving process is blocking while waiting for a message
-	  from sending process. If it is, set state to ready and add
-	  to appropriate ready queue.*/
-	  
-	UINT8 i = 0;
-	UINT8 j = 0;
-	UINT16 * msg = (UINT16)MessageEnvelope;
-	*msg = g_current_process->m_process_ID; //Put sender pid into first word of MessageEnvelope
-	*(msg + 2) = (UINT16)process_ID; //Put receiver pid into second word of MessageEnvelope
+    /*
+	Insert sender and receiver PIDs into MessageEnvelope and 
+	add message to receiving processes' message box. Check if
+	receiving process is blocking while waiting for a message
+	from sending process. If it is, set state to ready and add
+	to appropriate ready queue.
+	*/
 	
-	printHexAddress(msg);
-	asm("debug:");
+	UINT8 j = 0;
+	UINT32 * msg = (UINT32 *) messageEnvelope;
+	*msg = g_current_process->m_process_ID; //Put sender pid into first word of MessageEnvelope
+	*(msg + 1) = process_ID; //Put receiver pid into second word of MessageEnvelope
 
 	for(i = 0; i < NUM_PROCESSES; i++)
 	{
-		if(g_proc_table[i]->m_process_ID == process_ID)
+		if(g_proc_table[i].m_process_ID == process_ID)
 		{
 			for(j = 0; j < NUM_PROCESSES; j++)
 			{
-				//Put MessageEnvelope in receivers msg_box
-				if(g_proc_table[i]->msg_box[j] != 0)
+				//Put msg in receivers msg_box
+				if(g_proc_table[i].msg_box[j] == 0)
 				{
-					g_proc_table[i]->msg_box[j] = MessageEnvelope;
+					g_proc_table[i].msg_box[j] = msg;
+					break;
 				}
 			}
 			
 			//If receiving process is currently blocking on message from sender, unblock and push to ready queue
-			if(g_proc_table[i]->msg_waiting == (SINT8)g_current_process->m_process_ID)
+			if(g_proc_table[i].msg_waiting == (SINT8)g_current_process->m_process_ID)
 			{
-				g_proc_table[i]->m_state = 1;
+				g_proc_table[i].m_state = 1;
 				push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
 			}
 			break;
 		}
 	}
 	  
-    return 0;   
+	g_asmBridge = 0;
+	asm("move.l g_asmBridge, %d1");
 }
 
 VOID * receive_message(UINT8 * sender_ID)
 {
+	VOID * returnVal = 0;
+	
+	//Backup address and data registers
+	asm("move.l %d0, -(%a7)");
+	asm("move.l %d1, -(%a7)");
+	asm("move.l %d2, -(%a7)");
+	asm("move.l %d3, -(%a7)");
+	asm("move.l %d4, -(%a7)");
+	asm("move.l %d5, -(%a7)");
+	asm("move.l %d6, -(%a7)");
+	asm("move.l %d7, -(%a7)");
+	asm("move.l %a0, -(%a7)");
+	asm("move.l %a1, -(%a7)");
+	asm("move.l %a2, -(%a7)");
+	asm("move.l %a3, -(%a7)");
+	asm("move.l %a4, -(%a7)");
+	asm("move.l %a5, -(%a7)");
+	asm("move.l %a6, -(%a7)");
+	
+	//Place process_ID and messageEnvelope into d2 and d3 respectively to pass to send_message_trap_handler
+	g_asmBridge = (UINT32)sender_ID;
+	asm("move.l g_asmBridge, %d2");
+	
+	asm("TRAP #6");
+	
+	//Take return value from d1
+	asm("move.l %d1, g_asmBridge");
+	returnVal = (VOID *)g_asmBridge;
+	
+	asm("move.l (%a7)+, %a6");
+	asm("move.l (%a7)+, %a5");
+	asm("move.l (%a7)+, %a4");
+	asm("move.l (%a7)+, %a3");
+	asm("move.l (%a7)+, %a2");
+	asm("move.l (%a7)+, %a1");
+	asm("move.l (%a7)+, %a0");
+	asm("move.l (%a7)+, %d7");
+	asm("move.l (%a7)+, %d6");
+	asm("move.l (%a7)+, %d5");
+	asm("move.l (%a7)+, %d4");
+	asm("move.l (%a7)+, %d3");
+	asm("move.l (%a7)+, %d2");
+	asm("move.l (%a7)+, %d1");
+	asm("move.l (%a7)+, %d0");
+	
+	return returnVal;
+}
+
+VOID receive_message_trap_handler()
+{
+	UINT8 * sender_ID;
+	asm("move.l %d2, g_asmBridge");
+	sender_ID = (UINT8 *)g_asmBridge;
+
 	/*
 	Iterate through current processes message box and check if
 	there is a msg waiting from sender_ID. If there is, return
 	a pointer to that message. If there is not, current process
 	blocks and releases processor.
 	*/
-	  
+	UINT32 * addr;
 	UINT8 i = 0;
-	for(i = 0; i < NUM_PROCESSES; i++)
+	UINT8 consumed = 1; //0 means message has been consumed, non-zero means message not yet consumed
+	while(consumed == 1)
 	{
-		//If msg from sender_ID is in msg_box, return it
-		if(*(g_current_process->msg_box[i]) == *sender_ID)
+		for(i = 0; i < NUM_PROCESSES; i++)
 		{
-			/*Consume message (do later)*/
-			release_memory_block((VOID *)g_current_process->msg_box[i]);
-			g_current_process->msg_box[i] = 0;
-			return (VOID *)(*(g_current_process->msg_box[i]));
+			//If msg from sender_ID is in msg_box, return it
+			addr = g_current_process->msg_box[i];
+			if(*addr == *sender_ID)
+			{
+				/*Consume message (do later)*/
+				release_memory_block((VOID *)g_current_process->msg_box[i]);
+				g_current_process->msg_box[i] = 0;
+				consumed = 0;
+				g_asmBridge = g_current_process->msg_box[i];
+				asm("move.l g_asmBridge, %d1");
+				return;
+			}
+		}
+
+		if(consumed == 1)
+		{
+			//No msg from sender_ID in msg_box, current process must now block.
+			g_current_process->m_state = 0;
+			g_current_process->msg_waiting = (SINT8)(*sender_ID); //Indicate that current process is blocking on msg from process with pid sender_ID
+			release_processor();
 		}
 	}
 
-	//No msg from sender_ID in msg_box, current process must now block.
-	g_current_process->m_state = 0;
-	g_current_process->msg_waiting = (SINT8)(*sender_ID); //Indicate that current process is blocking on msg from process with pid sender_ID
-	  
-    return (VOID*)0;
+	g_asmBridge = 0;
+	asm("move.l g_asmBridge, %d1");
 }
 
 SINT8 pop(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb ** catcher)
