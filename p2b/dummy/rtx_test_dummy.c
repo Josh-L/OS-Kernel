@@ -11,28 +11,55 @@
 
 void test1()
 {
-	UINT32 * tmp = 2;
+	//UINT32 * tmp = 2;
+	//UINT8 tmp  = 2;
     while (1) 
     {
 		rtx_dbug_out_char('1');
+		rtx_dbug_outs("\r\n");
+		int * sender_id;
+		void *received;
+		void *tmp =  g_test_fixture.request_memory_block();
+		int *data = (int*)(tmp+100);
+		*data = 8;
+		g_test_fixture.send_message(2, tmp);
+		received = g_test_fixture.receive_message(sender_id);
 		// Build message
-		tmp = (UINT32) g_test_fixture.request_memory_block();
+/*		tmp = (UINT32) g_test_fixture.request_memory_block();
 		*(tmp + 2) = 0x00000009;
 		*(tmp + 3) = 0xFFFFFFFF;
 		
 		g_test_fixture.send_message(2, tmp);
-		g_test_fixture.release_processor();
-    }
+		g_test_fixture.receive_message(&tmp);
+*/
+	g_test_fixture.release_processor();  
+
+  }
 }
 
 void test2()
 {
-    UINT8 tmp = 1;
+ //   UINT8 tmp = 1;
     while (1) 
     {
+//		g_test_fixture.receive_message(&tmp);
+//		tmp = (UINT32) g_test_fixture.request_memory_block();
+//		g_test_fixture.send_message(1, tmp);
 		rtx_dbug_out_char('2');
-		g_test_fixture.receive_message(&tmp);
-		
+		rtx_dbug_outs("\r\n");
+		int * sender_id;
+		void *received = g_test_fixture.receive_message(sender_id);
+		int *data = (int*)(received+100);
+		rtx_dbug_outs("Test2 received ");
+		rtx_dbug_out_char('0'+*data);
+		rtx_dbug_outs(" from ");
+		rtx_dbug_out_char('0'+ *sender_id);
+		rtx_dbug_outs("\r\n");
+		void *tmp =  g_test_fixture.request_memory_block();
+		data = (int*)(tmp+100);
+		*data = 7;
+		g_test_fixture.send_message(3, tmp);
+		rtx_dbug_outs("Test2 sent 7 to 3");
 		g_test_fixture.release_processor();
     }
 }
@@ -43,6 +70,20 @@ void test3()
     while (1) 
     {
 		rtx_dbug_out_char('3');
+		rtx_dbug_outs("\r\n");
+		int sender_id;
+		void *received = g_test_fixture.receive_message(&sender_id);
+		int *data = (int*)(received+100);
+		rtx_dbug_outs("Test3 received ");
+		rtx_dbug_out_char('0'+*data);
+		rtx_dbug_outs(" from ");
+		rtx_dbug_out_char('0'+sender_id);
+		rtx_dbug_outs("\r\n");
+		void *tmp =  g_test_fixture.request_memory_block();
+		data = (int*)(tmp+100);
+		*data = 7;
+		g_test_fixture.send_message(2, tmp);
+		rtx_dbug_outs("Test3 sent 9 to 2");
 		g_test_fixture.release_processor();
 	}
 }
@@ -53,6 +94,7 @@ void test4()
     while (1) 
     {
 		rtx_dbug_out_char('4');
+		rtx_dbug_outs("\r\n");
         g_test_fixture.release_processor();
     }
 }
@@ -63,6 +105,7 @@ void test5()
     while (1) 
     {
 		rtx_dbug_out_char('5');
+		rtx_dbug_outs("\r\n");
         g_test_fixture.release_processor();
     }
 }
@@ -73,6 +116,7 @@ void test6()
     while (1) 
     {
 		rtx_dbug_out_char('6');
+		rtx_dbug_outs("\r\n");
         g_test_fixture.release_processor();
     }
 }

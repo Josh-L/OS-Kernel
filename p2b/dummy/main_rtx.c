@@ -42,14 +42,23 @@ int main()
 		UINT8 i = 0;
 	
 	// Setup all processes
-	for(i = 0; i < NUM_PROCESSES; i++)
+	for(i = 0; i < TEST_PROC; i++)
 	{
 		g_proc_table[i].m_process_ID = g_test_proc[i].pid;
 		g_proc_table[i].m_priority = g_test_proc[i].priority;
 		g_proc_table[i].m_state = 1;
 		g_proc_table[i].m_entry = g_test_proc[i].entry;
 		g_proc_table[i].m_stack = g_free_mem =g_free_mem + g_test_proc[i].sz_stack;
+		g_proc_table[i].i_process = 0;
 	}	
+		//Adding Null Proc to g_proc_table
+		g_proc_table[i].m_process_ID = 0;
+		g_proc_table[i].m_priority = 3;
+		g_proc_table[i].m_state = 1;
+		g_proc_table[i].m_entry = g_test_proc[i].entry;
+		g_proc_table[i].m_stack = g_free_mem = g_free_mem + g_test_proc[i].sz_stack;
+		g_proc_table[i].i_process = 1;
+	
 	
 	sys_init();
     /* The following  is just to demonstrate how to reference 
