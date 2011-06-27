@@ -53,10 +53,10 @@ int main()
 	}	
 		//Adding Null Proc to g_proc_table
 		g_proc_table[i].m_process_ID = 0;
-		g_proc_table[i].m_priority = 3;
+		g_proc_table[i].m_priority = 4;
 		g_proc_table[i].m_state = 1;
-		g_proc_table[i].m_entry = g_test_proc[i].entry;
-		g_proc_table[i].m_stack = g_free_mem = g_free_mem + g_test_proc[i].sz_stack;
+		g_proc_table[i].m_entry = null_process;
+		g_proc_table[i].m_stack = g_free_mem = g_free_mem + 2048;
 		g_proc_table[i].i_process = 1;
 	
 	
