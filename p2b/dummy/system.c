@@ -1,6 +1,6 @@
 #include "system.h"
 
-UINT8				    gp_mem_pool_lookup[NUM_MEM_BLKS]; // Stores whether or not the corresponding 
+UINT8				    	gp_mem_pool_lookup[NUM_MEM_BLKS]; // Stores whether or not the corresponding 
 UINT32 						gp_mem_pool_list[NUM_MEM_BLKS]; // List of addresses of memory blocks
 
 
@@ -20,7 +20,7 @@ UINT8						g_first_run = 1;
 extern struct s_pcb        	g_proc_table[NUM_PROCESSES];
 extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory region
 
-//Function definitions
+//Initializations
 VOID sys_init()
 {
 	// Set A7 to our kernel stack
@@ -63,6 +63,7 @@ VOID sys_init()
 		g_priority_queues[i].front = 0;
 		g_priority_queues[i].back = 0;
 		g_priority_queues[i].num_slots = NUM_PROCESSES;
+		
 		g_mem_blocking_queue[i].front = 0;
 		g_mem_blocking_queue[i].back = 0;
 		g_mem_blocking_queue[i].num_slots = NUM_PROCESSES;
@@ -72,8 +73,7 @@ VOID sys_init()
 	// Setup all processes
 	for(i = 0; i < NUM_PROCESSES; i++)
 	{
-		// Initialze message box and message waiting data structures
-		/*g_proc_table[i].msg_waiting = -1;*/
+		// Initialize message box and message waiting data structures
 		UINT8 k = 0;
 		for(k = 0; k < NUM_PROCESSES; k++)
 		{
@@ -150,7 +150,6 @@ VOID sys_init()
 
 VOID scheduler( VOID )
 {
-	//rtx_dbug_outs((CHAR *)"\r\n");
 	// If this isn't the first time the scheduler is run, then save the current_process information
 	if(g_first_run == 0)
 	{
@@ -189,7 +188,6 @@ VOID scheduler( VOID )
  	//rtx_dbug_outs((CHAR *)"\r\n");
 }
 
-// Voluntarily called by process
 SINT8 release_processor()
 {
 	UINT32 *addr = 0;
@@ -258,10 +256,7 @@ SINT8 send_message(UINT8 process_ID, VOID * messageEnvelope)
 }
 
 VOID send_message_trap_handler()
-{ /*
-	rtx_dbug_outs("SEND MESSAGE ");
-	rtx_dbug_outs((CHAR *)"\r\n");
-	*/
+{
 	UINT8 process_ID;
 	VOID * messageEnvelope;
 	
@@ -271,87 +266,42 @@ VOID send_message_trap_handler()
 	asm("move.l %d3, g_asmBridge");
 	messageEnvelope = (VOID *)g_asmBridge;
 	
-	//rtx_dbug_outs((CHAR *)"DEST ID ");
-	//rtx_dbug_out_char('0' +  process_ID);
-	//rtx_dbug_outs((CHAR *)"\r\n");
-
-	
-	
-	//Check if process_ID is valid. If it's not return -1.
-	UINT8 process_ID_valid = -1;
-	UINT8 i = 0;
-	for(i = 0; i < NUM_PROCESSES; i++)
-	{
-		if(g_proc_table[i].m_process_ID == process_ID)
-		{
-			process_ID_valid = 0;
-		}
-	}
-	
-	if(process_ID_valid == -1)
-	{
-		g_asmBridge = -1;
-		asm("move.l g_asmBridge, %d1");
-		return;
-	}
-	
     /*
-	Insert sender and receiver PIDs into MessageEnvelope and 
-	add message to receiving processes' message box. Check if
-	receiving process is blocking while waiting for a message
-	from sending process. If it is, set state to ready and add
-	to appropriate ready queue.
+	Insert message data structure into the destination process' message queue.
+	If the destination process was blocked due to waiting for a message,
+	unblock it and add it back to the scheduler queues.
 	*/
 	
 	struct s_message * new_message = messageEnvelope;
 	new_message->sender_id = g_current_process->m_process_ID;
 	new_message->dest_id = process_ID;
 	
-	/*
-	rtx_dbug_outs("MSG SENDER ");
-	rtx_dbug_out_char('0' + new_message->sender_id);
- 	rtx_dbug_outs((CHAR *)"\r\n");
-	rtx_dbug_outs("MSG RECEIVER  ");
-	rtx_dbug_out_char('0' + new_message->dest_id);
- 	rtx_dbug_outs((CHAR *)"\r\n");
-	*/
-	/*
-	
-	UINT8 j = 0;
-	UINT32 * msg = (UINT32 *) messageEnvelope;
-	*msg = g_current_process->m_process_ID; //Put sender pid into first word of MessageEnvelope
-	*(msg + 1) = process_ID; //Put receiver pid into second word of MessageEnvelope
-*/
+	UINT8 i = 0;
 	for(i = 0; i < NUM_PROCESSES; i++)
 	{
 		if(g_proc_table[i].m_process_ID == process_ID)
-		{
-			/*for(j = 0; j < NUM_PROCESSES; j++)
-			{
-				//Put msg in receivers msg_box
-				if(g_proc_table[i].msg_box[j] == 0)
-				{
-					g_proc_table[i].msg_box[j] = msg;
-					 rtx_dbug_outs("N Message \r\n");	
-				break;
-				}
-			}*/
-			
+		{	
 			message_push(&g_proc_table[i].msg_queue, g_proc_table[i].msg_queue_slots, new_message);
 			
-			
-			//If receiving process is currently blocking on message from sender, unblock and push to ready queue
-			if(g_proc_table[i].m_state == 4)
+			// If receiving process is currently blocking on message from sender, unblock and push to ready queue
+			if(g_proc_table[i].m_state == 3)
 			{
 				g_proc_table[i].m_state = 1;
 				push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
-				//rtx_dbug_outs("Ready Now\r\n");
 			}
 			break;
 		}
 	}
-	  
-	g_asmBridge = 0;
+	
+	if (i == NUM_PROCESSES)
+	{
+		g_asmBridge = -1;
+	}
+	else
+	{
+		g_asmBridge = 0;
+	}
+	
 	asm("move.l g_asmBridge, %d1");
 }
 
@@ -383,11 +333,9 @@ VOID * receive_message(UINT8 * sender_ID)
 	
 	asm("TRAP #6");
 	
-	
 	//Take return value from d1
 	asm("move.l %d1, g_asmBridge");
 	returnVal = g_asmBridge;
-	
 	
 	asm("move.l (%a7)+, %a6");
 	asm("move.l (%a7)+, %a5");
@@ -410,89 +358,37 @@ VOID * receive_message(UINT8 * sender_ID)
 
 VOID receive_message_trap_handler()
 {
-	//rtx_dbug_outs("RECEIVE MESSAGE ");
-	//rtx_dbug_outs((CHAR *)"\r\n");
-	
 	UINT8 * sender_ID;
 	asm("move.l %d2, g_asmBridge");
 	sender_ID = g_asmBridge;
 	
+	/*
+	Check to see if there is a message waiting in the process' message queue.
+	If there is a message, pop it from the queue, set the sender_id parameter
+	to the process id the message came from, and return a pointer to the block
+	of memory that the message resides in to the process.
+	If there is no message, set the process state to blocked on message, and
+	release processor. When this process receives a message, the process will
+	be re-added to the scheduler queue, and the next time it is executed it
+	will handle the message as explained above.
+	*/
 	
 	struct s_message *  msg;
 	
-	//g_current_process->msg_queue.front == 0 && g_current_process->msg_queue.back == 0
 	if(message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg) == -1){
-			/*rtx_dbug_outs("RECEIVE BLOCKED ");
-			//rtx_dbug_out_char('0' + new_message->sender_id);
-			rtx_dbug_outs((CHAR *)"\r\n");
-			*/
-			g_current_process->m_state = 4;
-			release_processor();
-			message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg); 
+		g_current_process->m_state = 3;
+		release_processor();
+		message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg); 
 	}
 
-	/*rtx_dbug_outs((CHAR *)"RECEIVE MESSAGE SOURCE ID ");
-	rtx_dbug_out_char('0' +  msg->sender_id);
-	rtx_dbug_outs((CHAR *)"\r\n");
-	rtx_dbug_outs((CHAR *)"RECEIVE MESSAGE ME ID ");
-	rtx_dbug_out_char('0' +  msg->dest_id);
-	rtx_dbug_outs((CHAR *)"\r\n");
-	*/
-	
 	*sender_ID = msg->sender_id;
 	
 	g_asmBridge = msg;
 	asm("move.l g_asmBridge, %d1");
-	
-	/*
-	Iterate through current processes message box and check if
-	there is a msg waiting from sender_ID. If there is, return
-	a pointer to that message. If there is not, current process
-	blocks and releases processor.
-	*/
-	/*
-	UINT32 * addr;
-	UINT8 i = 0;
-	UINT8 consumed = 1; //0 means message has been consumed, non-zero means message not yet consumed
-	while(consumed == 1)
-	{
-		for(i = 0; i < NUM_PROCESSES; i++)
-		{
-			//If msg from sender_ID is in msg_box, return it
-			addr = g_current_process->msg_box[i];
-			if(*addr == *sender_ID)
-			{
-				rtx_dbug_outs("M Found \r\n");
-				*//*Consume message (do later)*/
-		/*		release_memory_block((VOID *)g_current_process->msg_box[i]);
-				g_current_process->msg_box[i] = 0;
-				consumed = 0;
-				g_asmBridge = g_current_process->msg_box[i];
-				asm("move.l g_asmBridge, %d1");
-				return;
-			}
-		}
-
-		if(consumed == 1)
-		{
-			//No msg from sender_ID in msg_box, current process must now block.
-
-
-		}
-	}
-	*/
-	/*g_asmBridge = *sender_ID;
-	asm("move.l g_asmBridge, %d2");
-	
-	
-	g_asmBridge = 0;
-	asm("move.l g_asmBridge, %d1");
-	*/
 }
 
 SINT8 pop(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb ** catcher)
 {
-	
 	if (queue->front == 0)
 	{
 		return -1;
@@ -785,7 +681,6 @@ VOID get_process_priority_trap_handler()
 
 VOID * request_memory_block()
 {
-	
 	VOID * returnVal = 0;
 	
 	//Backup address and data registers
@@ -832,10 +727,6 @@ VOID * request_memory_block()
 
 VOID request_memory_block_trap_handler()
 {
-	/*
-	rtx_dbug_outs("REQ MEM ");
-	rtx_dbug_outs((CHAR *)"\r\n");
-	*/
 	VOID * freeBlock = 0;
     UINT8 i;
 	for (i = 0; i < NUM_MEM_BLKS; i++)
@@ -844,7 +735,6 @@ VOID request_memory_block_trap_handler()
 		{
 			gp_mem_pool_lookup[i] = 1;
 			freeBlock = (VOID *)gp_mem_pool_list[i];
-			//rtx_dbug_outs("Memory Block Found \r\n");
 			break;
 		}
 	}
@@ -855,7 +745,7 @@ VOID request_memory_block_trap_handler()
 		This means the current process must be set to blocked, added to the appropriate
 		blocking queue and release processor until it is moved to the ready queue by a
 		release_memory_block operation.*/
-		//rtx_dbug_outs("No Free Mem \r\n");
+		
 		g_current_process->m_state = 0;
 		push(&g_mem_blocking_queue[g_current_process->m_priority], g_mem_blocking_queue_slots, g_current_process); //Push current process to memory_blocked queue indicating that it's waiting for a memory block
 		
@@ -868,7 +758,6 @@ VOID request_memory_block_trap_handler()
 			{
 				gp_mem_pool_lookup[i] = 1;
 				freeBlock = (VOID *)gp_mem_pool_list[i];
-				//rtx_dbug_out_char('v');
 				break;
 			}
 		}
@@ -929,10 +818,7 @@ SINT8 release_memory_block(VOID * memory_block)
 }
 
 VOID release_memory_block_trap_handler()
-{	/*
-	rtx_dbug_outs("RELEASE MEM ");
-	rtx_dbug_outs((CHAR *)"\r\n");
-	*/
+{
 	VOID * memory_block;
 	asm("move.l %d2, g_asmBridge");
 	memory_block = (VOID *)g_asmBridge;
@@ -947,15 +833,16 @@ VOID release_memory_block_trap_handler()
 		{
 			gp_mem_pool_lookup[i] = 0;
 			
-			/*We must iterate through the processes blocked waiting for memory blocks, and unblock (set to ready)
-			  the highest priority process waiting for a memory block. If all blocked_mem queues are empty, that
-			  means there are no processes waiting for a memory block to become available and we can simply return.*/
+			/*
+			We must iterate through the processes blocked waiting for memory blocks, and unblock (set to ready)
+			the highest priority process waiting for a memory block. If all blocked_mem queues are empty, that
+			means there are no processes waiting for a memory block to become available and we can simply return.
+			*/
 			  
 		    for(j = 0; j < NUM_PRIORITIES; j++)
 		    {
 				if(pop(&g_mem_blocking_queue[j], g_mem_blocking_queue_slots, &previously_blocking_proc) != -1)
 				{
-					//rtx_dbug_outs("Un-mem-block \r\n");
 					previously_blocking_proc->m_state = 1;
 					gp_mem_pool_lookup[i] = 2;  //This method was the original idea of group 24 and was used with their permission.
 					push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, previously_blocking_proc);
@@ -979,48 +866,30 @@ SINT8 delayed_send(int process_ID, void * MessageEnvelope, int delay)
 
 SINT8 message_pop(struct s_message_queue * queue, struct s_message_queue_item slots[], struct s_message ** catcher)
 {
-	/*rtx_dbug_outs("MESSAGE POP");
-	rtx_dbug_outs((CHAR *)"\r\n");
-	*/
 	if (queue->front == 0)
 	{
 		return -1;
 	}
+	
 	*catcher = queue->front->data;
+	
 	queue->front->data = 0;
+	
 	if (queue->front == queue->back)
-	{
-		//rtx_dbug_outs((CHAR *)"POP NOW EMPTY ");
-		//rtx_dbug_outs((CHAR *)"\r\n");
-		
+	{	
 		queue->front = 0;
 		queue->back = 0;
 	}
 	else
 	{
-		//rtx_dbug_outs((CHAR *)"NAAAAAAAAAAAAAAAAA");
-		//rtx_dbug_outs((CHAR *)"\r\n");
 		queue->front = queue->front->next;
 	}
-	/*
-	rtx_dbug_outs((CHAR *)"POP CATCH SENDER ID ");
-	rtx_dbug_out_char('0' +  (*catcher)->sender_id);
-	rtx_dbug_outs((CHAR *)"\r\n");
-	*/
+	
     return 0;
 }
 
 SINT8 message_push(struct s_message_queue * queue, struct s_message_queue_item slots[], struct s_message * new_back)
-{/*
-	rtx_dbug_outs("MESSAGE PUSH ");
-	rtx_dbug_outs((CHAR *)"\r\n");
-
-	
-	
-	rtx_dbug_outs((CHAR *)"PUSH MESSAGE ME ID ");
-	rtx_dbug_out_char('0' +  new_back->dest_id);
-	rtx_dbug_outs((CHAR *)"\r\n");
-	*/
+{
 	// Find a free node to use
 	UINT8 i = 0;
 	for (i = 0; i < queue->num_slots; i++)
@@ -1041,18 +910,10 @@ SINT8 message_push(struct s_message_queue * queue, struct s_message_queue_item s
 	
 	if (queue->back == 0)
 	{
-		//rtx_dbug_outs((CHAR *)"PUSH FIRST MESSAGE IN MAILBOX IN SLOT ");
-		//rtx_dbug_out_char('0' +  i);
-		//rtx_dbug_outs((CHAR *)"\r\n");
-		
 		queue->front = &slots[i];
 	}
 	else
 	{
-		//rtx_dbug_outs((CHAR *)"PUSH MAILBOX IN SLOT ");
-		//rtx_dbug_out_char('0' +  i);
-		//rtx_dbug_outs((CHAR *)"\r\n");
-		
 		queue->back->next = &slots[i];
 	}
 	queue->back = &slots[i];
