@@ -191,11 +191,6 @@ VOID scheduler( VOID )
 
 int release_processor()
 {
-
-	
-        rtx_dbug_out_char('0' + g_current_process->m_process_ID);
-        rtx_dbug_outs(" is attempting to release itself ");
-	
 	UINT32 *addr = 0;
 	asm("move.l %a7, g_asmBridge");
 	addr = g_asmBridge + 0x8;
@@ -296,6 +291,10 @@ VOID send_message_trap_handler()
 			{
 				g_proc_table[i].m_state = 1;
 				push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
+				if(g_current_process->m_priority > g_proc_table[i].m_priority){
+					release_processor();
+				}
+			
 			}
 			break;
 		}
@@ -612,6 +611,10 @@ VOID set_process_priority_trap_handler()
 	// Now push to new priority queue
 	push(&g_priority_queues[priority], g_queue_slots, &g_proc_table[i]);
 	
+	if(g_current_process->m_priority > g_proc_table[i].m_priority){
+		release_processor();
+	}
+
 	//Put return value in d2
 	g_asmBridge =  0;
 	asm("move.l g_asmBridge, %d2");
@@ -861,6 +864,9 @@ VOID release_memory_block_trap_handler()
 					previously_blocking_proc->m_state = 1;
 					gp_mem_pool_lookup[i] = 2;  //This method was the original idea of group 24 and was used with their permission.
 					push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, previously_blocking_proc);
+					if(g_current_process->m_priority > previously_blocking_proc->m_priority){
+						release_processor();
+					}
 					break;
 				}
 		    }

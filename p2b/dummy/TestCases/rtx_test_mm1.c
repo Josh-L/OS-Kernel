@@ -14,97 +14,40 @@
 void test1()
 { 
     VOID * tmp;
-	VOID * tmp1;
     while (1) 
     {
 		rtx_dbug_out_char('1');
 		rtx_dbug_outs("\r\n");
-		g_test_fixture.release_processor();
-		/*	
-		rtx_dbug_out_char('1');
-		rtx_dbug_outs("\r\n");
-		g_test_fixture.release_processor();
-		
-		rtx_dbug_out_char('1');
-		rtx_dbug_outs("\r\n");
-		g_test_fixture.release_processor();
-		
-		rtx_dbug_out_char('1');
-		rtx_dbug_outs("\r\n");
-		g_test_fixture.release_processor();
-		
 		tmp = g_test_fixture.request_memory_block();
-
-		tmp1 = g_test_fixture.request_memory_block();
-
-		if(g_test_fixture.release_memory_block(tmp) < 0){
-				rtx_dbug_outs("Fail Test 1\r\n");
-		}else{
-				rtx_dbug_outs("Pass Test 1\r\n");
+		g_test_fixture.send_message(2, tmp);
+		rtx_dbug_outs("1 Sent Message to 2 \r\n");
+		UINT8 i;
+		for(i = 0; i < 33; i++){
+		 rtx_dbug_outs("1 REQ MEM \r\n");
+		 tmp =  g_test_fixture.request_memory_block();
+		 rtx_dbug_outs("1 GOT MEM \r\n");
 		}
-
-		if(g_test_fixture.release_memory_block(tmp1) < 0){
-				rtx_dbug_outs("Fail Test 2\r\n");
-		}else{
-				rtx_dbug_outs("Pass Test 2\r\n");
-		}
-*/
-		//tmp = g_test_fixture.request_memory_block();
-		//g_test_fixture.send_message(2, tmp);
-		//*((int *)tmp + 100 ) = 4;
-		//rtx_dbug_outs("1 Sent Message to 2 \r\n");
-		//UINT8 i;
-		//for(i = 0; i < 33; i++){
-		// rtx_dbug_outs("1 REQ MEM \r\n");
-		// tmp =  g_test_fixture.request_memory_block();
-		// rtx_dbug_outs("1 GOT MEM \r\n");
-		//}
 		//g_test_fixture.release_processor();
   }
 }
 
 void test2()
 {
-    //UINT8 tmp2;
-	VOID * tmp2;
+    UINT8 tmp2;
     VOID * tmp21;	
     while (1) 
     {
-/*		rtx_dbug_out_char('2');
-		rtx_dbug_outs("\r\n");
-		g_test_fixture.release_processor();
-
 		rtx_dbug_out_char('2');
 		rtx_dbug_outs("\r\n");
-		g_test_fixture.release_processor();
-
-		tmp2 = g_test_fixture.request_memory_block();
-
-		tmp21 = g_test_fixture.request_memory_block();
-
-		rtx_dbug_out_char('2');
-		rtx_dbug_outs("\r\n");
-		g_test_fixture.release_processor();
-				
-		rtx_dbug_out_char('2');
-		rtx_dbug_outs("\r\n");
-		g_test_fixture.release_processor();
-*/
-		rtx_dbug_out_char('2');
-		rtx_dbug_outs("\r\n");
-		g_test_fixture.release_processor();
-	 /*	tmp21 = g_test_fixture.receive_message(&tmp2);
+		tmp21 = g_test_fixture.receive_message(&tmp2);
 		
 		if(tmp2 == 1){
 			rtx_dbug_outs("2 Received Message From 1 \r\n");
-			rtx_dbug_outs("Message Data ");
-			rtx_dbug_out_char('0' +  *((int *)tmp21 + 100 ) );
-			rtx_dbug_outs("\r\n");
 			g_test_fixture.release_memory_block(tmp21);	
 		
 		} 		
 		//g_test_fixture.release_processor();
-	*/	
+		
     }	
 
 		
@@ -170,13 +113,7 @@ void __attribute__ ((section ("__REGISTER_TEST_PROCS__")))register_test_proc()
 
     for (i =0; i< NUM_TEST_PROCS; i++ ) {
         g_test_proc[i].pid = i + 1;
-		if(i < 3){
-			g_test_proc[i].priority = 2;
-		}else{
-			g_test_proc[i].priority = 3;
-		}
-			
-        
+        g_test_proc[i].priority = 3;
         g_test_proc[i].sz_stack = 2048;
     }
     g_test_proc[0].entry = test1;
