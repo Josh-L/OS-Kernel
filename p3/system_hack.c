@@ -639,51 +639,54 @@ VOID set_process_priority_trap_handler()
 	struct s_pcb_queue_item * cur = g_priority_queues[oldPriority].front;
 	struct s_pcb_queue_item * prev = g_priority_queues[oldPriority].front;
 	
+	// Update the process priority
+	g_proc_table[i].m_priority = priority;
 	
-	// First remove the process from the old priority list
-	if (g_priority_queues[oldPriority].front == 0)
+	// Check to make sure the process isn't blocked
+	if (g_proc_table[i].m_state != 1)
 	{
-		// Do nothing in this case
-	}
-	else if (g_priority_queues[oldPriority].front->data == &g_proc_table[i])
-	{
-		struct s_pcb * temp;
-		pop(&g_priority_queues[oldPriority], g_queue_slots, &temp);
-	}
-	else
-	{
-		if (g_priority_queues[oldPriority].front == g_priority_queues[oldPriority].back)
+		// First remove the process from the old priority list
+		if (g_priority_queues[oldPriority].front == 0)
+		{
+			// Do nothing in this case
+		}
+		else if (g_priority_queues[oldPriority].front->data == &g_proc_table[i])
 		{
 			struct s_pcb * temp;
 			pop(&g_priority_queues[oldPriority], g_queue_slots, &temp);
 		}
 		else
+		{
+			if (g_priority_queues[oldPriority].front == g_priority_queues[oldPriority].back)
 			{
-			cur = cur->next;
-			while (cur != g_priority_queues[oldPriority].back)
-			{
+				struct s_pcb * temp;
+				pop(&g_priority_queues[oldPriority], g_queue_slots, &temp);
+			}
+			else
+				{
+				cur = cur->next;
+				while (cur != g_priority_queues[oldPriority].back)
+				{
+					if (cur->data->m_process_ID == process_ID)
+					{
+						prev->next = cur->next;
+						cur->data = 0;
+						break;
+					}
+					prev = cur;
+					cur = cur->next;
+				}
 				if (cur->data->m_process_ID == process_ID)
 				{
-					prev->next = cur->next;
 					cur->data = 0;
-					break;
+					g_priority_queues[oldPriority].back = prev;
 				}
-				prev = cur;
-				cur = cur->next;
-			}
-			if (cur->data->m_process_ID == process_ID)
-			{
-				cur->data = 0;
-				g_priority_queues[oldPriority].back = prev;
 			}
 		}
+		
+		// Now push to new priority queue
+		push(&g_priority_queues[priority], g_queue_slots, &g_proc_table[i]);
 	}
-	
-	// Update the process priority
-	g_proc_table[i].m_priority = priority;
-	
-	// Now push to new priority queue
-	push(&g_priority_queues[priority], g_queue_slots, &g_proc_table[i]);
 	
 	if(g_current_process->m_priority > g_proc_table[i].m_priority){
 		release_processor();

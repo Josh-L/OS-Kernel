@@ -1,8 +1,7 @@
-#include "system.h"
+ #include "system.h"
 
 UINT8				    	gp_mem_pool_lookup[NUM_MEM_BLKS]; // Stores whether or not the corresponding 
 UINT32 						gp_mem_pool_list[NUM_MEM_BLKS]; // List of addresses of memory blocks
-
 
 struct s_pcb 	    		*g_current_process;
 
@@ -16,6 +15,7 @@ struct s_pcb_queue_item 	g_mem_blocking_queue_slots[NUM_PROCESSES];
 UINT32						*g_kernelStack = 0; // Pointer to kernel stack
 UINT32						g_asmBridge = 0;
 UINT8						g_first_run = 1;
+UINT32						preIPI		= 0;
 
 extern struct s_pcb        	g_proc_table[NUM_PROCESSES];
 extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory region
@@ -24,6 +24,7 @@ extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory 
 VOID sys_init()
 {
 	// Set A7 to our kernel stack
+	iProcessInterrupted = 0;
 	g_kernelStack = g_free_mem = g_free_mem + KERNEL_STACK_SIZE;
 	g_asmBridge = g_kernelStack;
 	asm("move.l g_asmBridge, %a7");
@@ -44,8 +45,51 @@ VOID sys_init()
 	asm("move.l #receive_msg_trap,%d0");
 	asm("move.l %d0,0x10000098");
 	
-	// Setting the status register to allow interrupts, not needed now
-	//asm( "move.w #0x2000,%SR" );
+    // Disable all interupts
+    asm( "move.w #0x2700,%sr" );
+    ColdFire_vbr_init();
+	
+    // Store the serial ISR at user vector #64
+    asm( "move.l #asm_serial_entry,%d0" );
+    asm( "move.l %d0,0x10000100" );
+	// Reset the entire UART
+    SERIAL1_UCR = 0x10;
+    // Reset the receiver
+    SERIAL1_UCR = 0x20;
+    // Reset the transmitter
+    SERIAL1_UCR = 0x30;
+    // Reset the error condition
+    SERIAL1_UCR = 0x40;
+    // Install the interupt
+    SERIAL1_ICR = 0x17;
+    SERIAL1_IVR = 64;
+	
+    // Enable interrupts on rx only
+    SERIAL1_IMR = 0x02;
+    // Set the baud rate
+    SERIAL1_UBG1 = 0x00;
+#ifdef _CFSERVER_           // add -D_CFSERVER_ for cf-server build
+    SERIAL1_UBG2 = 0x49;    // cf-server baud rate 19200
+#else
+    SERIAL1_UBG2 = 0x92;    // lab board baud rate 9600
+#endif
+    // Set clock mode
+    SERIAL1_UCSR = 0xDD;
+    // Setup the UART (no parity, 8 bits )
+    SERIAL1_UMR = 0x13;
+    // Setup the rest of the UART (noecho, 1 stop bit )
+    SERIAL1_UMR = 0x07;
+    // Setup for transmit and receive
+    SERIAL1_UCR = 0x05;
+	
+    // Enable interupts
+	UINT32 mask;
+    mask = SIM_IMR;
+    mask &= 0x0003dfff;
+    SIM_IMR = mask;
+    
+    // Enable all interupts
+    asm( "move.w #0x2000,%sr" );
 	
 	UINT8 i = 0;
 	UINT32 * addr;
@@ -93,8 +137,9 @@ VOID sys_init()
 		g_mem_blocking_queue_slots[i].next = 0;
 		
 		// Push process into proper priority queue
-		push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
-		
+		if(g_proc_table[i].i_process != 1){
+			push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
+		}
 		// Setup blank ESF
 		addr = g_proc_table[i].m_stack;
 		*addr = g_proc_table[i].m_entry;
@@ -150,17 +195,28 @@ VOID sys_init()
 
 VOID scheduler( VOID )
 {
+	asm( "move.w #0x2700,%sr" );
 	// If this isn't the first time the scheduler is run, then save the current_process information
+	preIPI = iProcessInterrupted;
 	if(g_first_run == 0)
 	{
-		asm("move.l %a7, g_asmBridge");
+		//asm("move.l %a7, g_asmBridge");
         g_current_process->m_stack = g_asmBridge;
 		if(g_current_process->m_state == 2) //If calling process was running 
 		{
 			g_current_process->m_state = 1;
-			if (g_current_process->m_process_ID >= 0)
+			if (g_current_process->m_process_ID >= 0  && iProcessInterrupted == 0)
 			{
 				push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, g_current_process);
+			}else if(iProcessInterrupted == 1){
+				iProcessInterrupted = g_current_process;
+				rtx_dbug_outs("i eq g \r\n");
+				printHexAddress(iProcessInterrupted);
+				rtx_dbug_outs("\r\n");
+				printHexAddress(g_current_process);
+				rtx_dbug_outs("\r\n");
+			}else{
+				iProcessInterrupted = 0;
 			}
 		}
 	}
@@ -169,29 +225,41 @@ VOID scheduler( VOID )
 		g_first_run = 0; // Record that we have run the scheduler once
 	}
 	
-	UINT8 i;
-	for(i = 0; i < NUM_PRIORITIES; i++)
-	{
-		//if(pop(i, &g_current_process) != -1)
-		if(pop(&g_priority_queues[i], g_queue_slots, &g_current_process) != -1)
+	if(preIPI == 0){
+		UINT8 i;
+		for(i = 0; i < NUM_PRIORITIES; i++)
 		{
-			break;
+			//if(pop(i, &g_current_process) != -1)
+			if(pop(&g_priority_queues[i], g_queue_slots, &g_current_process) != -1)
+			{
+				break;
+			}
 		}
-	}
-	
-	// Set process state of selected process to running and restore its stack
-	g_current_process->m_state = 2;
-	g_asmBridge = g_current_process->m_stack;
+		// Set process state of selected process to running and restore its stack
 
+	}else if(preIPI == 1){
+		g_current_process = &g_proc_table[7];
+
+	}else{
+		g_current_process = &g_proc_table[0];
+		rtx_dbug_outs("g eq i\r\n");
+		printHexAddress(iProcessInterrupted);
+		rtx_dbug_outs("\r\n");
+		printHexAddress(g_current_process);
+		rtx_dbug_outs("\r\n");
+	}
+		g_current_process->m_state = 2;
+		g_asmBridge = g_current_process->m_stack;
 	
-	//rtx_dbug_outsrtx_dbug_outs("RELEASE PROCESSOR NEW PROC ");
-	//rtx_dbug_out_char('0' + g_current_process->m_process_ID);
- 	//rtx_dbug_outs((CHAR *)"\r\n");
+		rtx_dbug_outs("N: ");
+		rtx_dbug_out_char('0' + g_current_process->m_process_ID);
+		rtx_dbug_outs((CHAR *)"\r\n");
+		asm( "move.w #0x2000,%sr" );
 }
 
 int release_processor()
 {
-    asm("TRAP #0");
+	asm("TRAP #0");
 	return 0;
 }
 
@@ -943,4 +1011,14 @@ VOID null_process()
 		rtx_dbug_outs("null\n\r");
 		release_processor();
 	}
+}
+
+SINT32 ColdFire_vbr_init( VOID )
+{
+	// Move the VBR (vector base register) into real memory
+    asm( "move.l %a0, -(%a7)" );
+    asm( "move.l #0x10000000, %a0" );
+    asm( "movec.l %a0, %vbr" );
+    asm( "move.l (%a7)+, %a0" );
+    return RTX_SUCCESS;
 }

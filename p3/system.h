@@ -50,7 +50,6 @@ struct s_pcb
 	struct	s_message_queue msg_queue;
 	struct	s_message_queue_item msg_queue_slots[NUM_PROCESSES];
 	UINT8	i_process;
-	
 };
 
 struct s_pcb_queue_item
@@ -70,18 +69,20 @@ struct s_pcb_queue
 VOID	sys_init();
 VOID	scheduler( VOID );
 VOID	schedule_iproc();
-int	release_processor();
-int	send_message(int process_ID, VOID * MessageEnvelope);
+int		release_processor();
+int		send_message(int process_ID, VOID * MessageEnvelope);
 VOID*	receive_message(int * sender_ID);
 SINT8 	push(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb * new_back);
 SINT8	pop(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb ** catcher);
-int	set_process_priority(int process_ID, int priority);
-int	get_process_priority(int process_ID);
+int		set_process_priority(int process_ID, int priority);
+int		get_process_priority(int process_ID);
 VOID	iterate(UINT8 priority);
 VOID*	request_memory_block();
-int	release_memory_block(VOID * memory_block);
+int		release_memory_block(VOID * memory_block);
 SINT8	message_push(struct s_message_queue * queue, struct s_message_queue_item slots[], struct s_message * new_back);
 SINT8	message_pop(struct s_message_queue * queue, struct s_message_queue_item slots[], struct s_message ** catcher);
+int		delayed_send(int process_ID, void * MessageEnvelope, int delay);
+SINT32	ColdFire_vbr_init( VOID );
 
 //System Processes
 VOID	null_process();
@@ -105,10 +106,4 @@ struct s_pcb g_sysproc_table[] =
 VOID	c_serial_handler();
 
 UINT32 iProcessInterrupted; //1 when true, 0 when false, otherwise address to pcb that it should return to
-
-
-/*Timing Service*/
-int	delayed_send(int process_ID, void * MessageEnvelope, int delay);
-
-SINT32 ColdFire_vbr_init( VOID );
 #endif

@@ -37,9 +37,8 @@ int main()
 
     /* get the third party test proc initialization info */
     __REGISTER_TEST_PROCS_ENTRY__();
-
 	
-		UINT8 i = 0;
+	UINT8 i = 0;
 	
 	// Setup all processes
 	for(i = 0; i < TEST_PROC; i++)
@@ -50,38 +49,33 @@ int main()
 		g_proc_table[i].m_entry = g_test_proc[i].entry;
 		g_proc_table[i].m_stack = g_free_mem =g_free_mem + g_test_proc[i].sz_stack;
 		g_proc_table[i].i_process = 0;
-	}	
-		//Adding Null Proc to g_proc_table
-		g_proc_table[i].m_process_ID = 0;
-		g_proc_table[i].m_priority = 4;
-		g_proc_table[i].m_state = 1;
-		g_proc_table[i].m_entry = null_process;
-		g_proc_table[i].m_stack = g_free_mem = g_free_mem + 2048;
-		g_proc_table[i].i_process = 0;
+	}
 	
+	//Adding Null Proc to g_proc_table
+	g_proc_table[i].m_process_ID = 0;
+	g_proc_table[i].m_priority = 4;
+	g_proc_table[i].m_state = 1;
+	g_proc_table[i].m_entry = null_process;
+	g_proc_table[i].m_stack = g_free_mem = g_free_mem + 1024;
+	g_proc_table[i].i_process = 0;
 
-		g_proc_table[i+1].m_process_ID = 7;
-		g_proc_table[i+1].m_priority = 0;
-		g_proc_table[i+1].m_state = 1;
-		g_proc_table[i+1].m_entry = uart;
-		g_proc_table[i+1].m_stack = g_free_mem = g_free_mem + 2048;
-		g_proc_table[i+1].i_process = 1;
+	// Keyboard decoder process
+	g_proc_table[i+1].m_process_ID = 7;
+	g_proc_table[i+1].m_priority = 0;
+	g_proc_table[i+1].m_state = 1;
+	g_proc_table[i+1].m_entry = uart;
+	g_proc_table[i+1].m_stack = g_free_mem = g_free_mem + 1024;
+	g_proc_table[i+1].i_process = 1;
+	
+	// Print to screen process
+	g_proc_table[i+2].m_process_ID = 8;
+	g_proc_table[i+2].m_priority = 2;
+	g_proc_table[i+2].m_state = 1;
+	g_proc_table[i+2].m_entry = timer;
+	g_proc_table[i+2].m_stack = g_free_mem = g_free_mem + 1024;
+	g_proc_table[i+2].i_process = 1;
 
-		g_proc_table[i+2].m_process_ID = 8;
-		g_proc_table[i+2].m_priority = 2;
-		g_proc_table[i+2].m_state = 1;
-		g_proc_table[i+2].m_entry = timer;
-		g_proc_table[i+2].m_stack = g_free_mem = g_free_mem + 2048;
-		g_proc_table[i+2].i_process = 1;
-
-		sys_init();
-    /* The following  is just to demonstrate how to reference 
-     * the third party test process entry point inside rtx.
-     * Your rtx should NOT call the test process directly!!! 
-     * Instead, the scheduler picks the test process to run
-     * and the os context switches to the chosen test process
-     */
-    //g_test_proc[0].entry(); /* DO NOT invoke test proc this way !!*/ 
+	sys_init();
 
     return 0;
 }
