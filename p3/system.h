@@ -10,9 +10,12 @@
 #define MEM_BLK_SIZE 128
 #define NUM_MEM_BLKS 32
 
-#define NUM_PROCESSES 7
+#define NUM_PROCESSES 9
 #define TEST_PROC 6
 
+#define NULL_PROC_ID	0
+#define UART_ID			7
+#define TIMER_ID		8
 
 extern BYTE __end;
 
@@ -66,6 +69,7 @@ struct s_pcb_queue
 //Function prototypes
 VOID	sys_init();
 VOID	scheduler( VOID );
+VOID	schedule_iproc();
 int	release_processor();
 int	send_message(int process_ID, VOID * MessageEnvelope);
 VOID*	receive_message(int * sender_ID);
@@ -78,9 +82,33 @@ VOID*	request_memory_block();
 int	release_memory_block(VOID * memory_block);
 SINT8	message_push(struct s_message_queue * queue, struct s_message_queue_item slots[], struct s_message * new_back);
 SINT8	message_pop(struct s_message_queue * queue, struct s_message_queue_item slots[], struct s_message ** catcher);
+
+//System Processes
 VOID	null_process();
+
+//i-processes
+VOID	uart();
+VOID	timer();
+
+//System Proc Init Array
+//Use this array in the main
+
+/*
+struct s_pcb g_sysproc_table[] =
+{
+	{NULL_PROC_ID, 4, 1, 1024, null_process},
+	{UART_ID, 0, 1, 1024, test_proc_1},
+	{TIMER_ID, 0, 1, 1024, test_proc_2}
+};
+*/
+
+VOID	c_serial_handler();
+
+UINT32 iProcessInterrupted; //1 when true, 0 when false, otherwise address to pcb that it should return to
+
 
 /*Timing Service*/
 int	delayed_send(int process_ID, void * MessageEnvelope, int delay);
 
+SINT32 ColdFire_vbr_init( VOID );
 #endif

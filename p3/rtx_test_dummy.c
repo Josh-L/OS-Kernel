@@ -19,8 +19,8 @@ void test1()
     {
 		rtx_dbug_out_char('1');
 		rtx_dbug_outs("\r\n");
-		g_test_fixture.release_processor();
-		rtx_dbug_outs("Change Priority\r\n");
+		//g_test_fixture.release_processor();
+		/*rtx_dbug_outs("Change Priority\r\n");
 		g_test_fixture.set_process_priority(2, 2);
 		rtx_dbug_outs("Change Priority End\r\n");
 		rtx_dbug_outs("Sending Message to 2\r\n");
@@ -30,6 +30,7 @@ void test1()
 		rtx_dbug_outs("Releasing Memory Block\r\n");
 		g_test_fixture.release_memory_block(tmp1);
 		rtx_dbug_outs("Releasing Memory Block End\r\n");
+		*/
 	}
 }
 
@@ -44,7 +45,7 @@ void test2()
 		rtx_dbug_out_char('2');
 		rtx_dbug_outs("\r\n");
 		g_test_fixture.release_processor();
-		rtx_dbug_outs("Receiving Message from 1\r\n");
+		/*rtx_dbug_outs("Receiving Message from 1\r\n");
 		tmp21 = g_test_fixture.receive_message(&i);
 		rtx_dbug_outs("Receiving Message from 1 END\r\n");
 		UINT8 k;
@@ -53,6 +54,7 @@ void test2()
 		 tmp21 = g_test_fixture.request_memory_block();
 		} 
 		g_test_fixture.release_processor();
+		*/
 	}	
  }
 
@@ -102,7 +104,7 @@ void test6()
     {
 		rtx_dbug_out_char('6');
 		rtx_dbug_outs("\r\n");
-        	g_test_fixture.release_processor();
+        g_test_fixture.release_processor();
     }
 }
 

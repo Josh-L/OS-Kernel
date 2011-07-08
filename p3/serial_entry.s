@@ -1,6 +1,6 @@
-	.globl release_proc_trap
-	.even
-release_proc_trap:
+	.globl asm_serial_entry
+	.even		
+asm_serial_entry:
 	
 	move.l %d0, -(%a7)
 	move.l %d1, -(%a7)
@@ -19,7 +19,7 @@ release_proc_trap:
 	move.l %a6, -(%a7)
 	
 	move.l %a7,g_asmBridge
-	jsr	scheduler
+	jsr	c_serial_handler
 	move.l g_asmBridge, %a7
 	
 	move.l (%a7)+, %a6
@@ -39,4 +39,3 @@ release_proc_trap:
 	move.l (%a7)+, %d0
 	
 	rte
-	
