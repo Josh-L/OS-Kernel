@@ -22,12 +22,24 @@
 extern BYTE __end;
 
 //Structs
+struct s_char_queue
+{
+	struct s_char_queue_item * front;
+	struct s_char_queue_item * back;
+	UINT8 num_slots;
+};
+
+struct s_char_queue_item
+{
+	struct s_char_queue_item * next;
+	char data;
+};
+
 struct s_message
 {
-	int    sender_id;
-	int    dest_id;
-	int    type_message;
-    char * msg_text;
+	int sender_id;
+	int dest_id;
+	int type_message;
 };
 
 struct s_message_queue
