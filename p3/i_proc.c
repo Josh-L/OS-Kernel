@@ -1,39 +1,22 @@
 #include "system.h"
 
-volatile BYTE CharIn = '!';
-volatile BOOLEAN Caught = TRUE;
-volatile BYTE CharOut = '\0';
-CHAR StringHack[] = "You Typed a Q\n\r";
+extern struct s_pcb 			g_proc_table[NUM_PROCESSES];
+extern struct s_pcb_queue		g_iProc_queue;
+extern struct s_pcb_queue_item 	g_iProc_queue_slots[5];
 
 void uart(){
-	while(1){  
-	rtx_dbug_outs((CHAR *)"UART :");
-    
-        if( !Caught )
-        {
-            Caught = TRUE;
-            CharOut = CharIn;
-            /* Nasty hack to get a dynamic string format, 
-             * grab the character before turning the interrupts back on. 
-             */
-            StringHack[12] = CharIn;
-            /* enable tx interrupts  */
-            SERIAL1_IMR = 3;
-	        /* Now print the string to debug, 
-             * note that interrupts are now back on. 
-             */
-            rtx_dbug_outs((CHAR *)StringHack );
-		}
-		Caught = TRUE;
-		CharIn = '\0';
+	while(1)
+    {    
 		release_processor();
-
-		
 	}
 }
 
-void timer(){
-
+void timer()
+{
+	while(1)
+	{
+		release_processor();
+	}
 }
 
 
@@ -84,25 +67,8 @@ void crt(){
     }
 }
 
-void c_serial_handler(){
-	
-   /* BYTE temp;
-    temp = SERIAL1_UCSR;
-    if( temp & 1 )
-    {
-        CharIn = SERIAL1_RD;
-        Caught = FALSE;
-		rtx_dbug_outs((CHAR *)"CALLING SCHEDULER \n\r");
-		SERIAL1_IMR = 2;
-		g_test_fixture.scheduler();
-    }
-    else if ( temp & 4 )
-    {
-		SERIAL1_WD = CharOut;
-        SERIAL1_IMR = 2;
-
-    }
-	
-	return;*/
+void c_serial_handler()
+{
+	   
 }
 

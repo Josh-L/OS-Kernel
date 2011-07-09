@@ -8,9 +8,9 @@ struct s_pcb 	    		*g_current_process;
 struct s_pcb_queue			g_priority_queues[NUM_PRIORITIES];
 struct s_pcb_queue_item 	g_queue_slots[NUM_PROCESSES]; // Have an array of ready queue slots
 
-// Queue to hold the single i process queue, which has priority over regular queues
+// Queue to hold the i process queue, which has priority over regular queues
 struct s_pcb_queue			g_iProc_queue;
-struct s_pcb_queue_item 	g_iProc_queue_slots[NUM_PROCESSES];
+struct s_pcb_queue_item 	g_iProc_queue_slots[5];
 
 // Array of queues to hold processes that are blocked waiting on memory
 struct s_pcb_queue			g_mem_blocking_queue[NUM_PRIORITIES];
@@ -18,9 +18,12 @@ struct s_pcb_queue_item 	g_mem_blocking_queue_slots[NUM_PROCESSES];
 
 UINT32						*g_kernelStack = 0; // Pointer to kernel stack
 UINT32						g_asmBridge = 0;
-UINT8						g_first_run = 1;
 
-extern struct s_pcb        	g_proc_table[NUM_PROCESSES];
+// Schduler related variables
+UINT8						g_first_run = 1;
+struct s_pcb 	    		*g_i_interrupted_proc;
+
+extern struct s_pcb 		g_proc_table[NUM_PROCESSES];
 extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory region
 
 //Initializations
@@ -30,7 +33,7 @@ VOID sys_init()
 	g_kernelStack = g_free_mem = g_free_mem + KERNEL_STACK_SIZE;
 	g_asmBridge = g_kernelStack;
 	asm("move.l g_asmBridge, %a7");
-	      
+	
 	// Insert TRAP subroutines into vector table
 	asm("move.l #release_proc_trap,%d0");
 	asm("move.l %d0,0x10000080");	
@@ -113,7 +116,16 @@ VOID sys_init()
 		g_mem_blocking_queue[i].front = 0;
 		g_mem_blocking_queue[i].back = 0;
 		g_mem_blocking_queue[i].num_slots = NUM_PROCESSES;
-
+	}
+	
+	// Initialize i process queue
+	g_iProc_queue.front = 0;
+	g_iProc_queue.back = 0;
+	g_iProc_queue.num_slots = 5;
+	for(i = 0; i < 5; i++)
+	{
+		g_iProc_queue_slots[i].data = 0;
+		g_iProc_queue_slots[i].next = 0;
 	}
 	
 	// Setup all processes
@@ -131,7 +143,6 @@ VOID sys_init()
 		g_proc_table[i].msg_queue.back = 0;
 		g_proc_table[i].msg_queue.num_slots = NUM_PROCESSES;
 		
-		
 		// Setup a blank queue slot for this process
 		g_queue_slots[i].data = 0;
 		g_queue_slots[i].next = 0;
@@ -139,7 +150,7 @@ VOID sys_init()
 		g_mem_blocking_queue_slots[i].next = 0;
 		
 		// Push process into proper priority queue
-		if(g_proc_table[i].i_process != 1){
+		if(g_proc_table[i].i_process == 0){
 			push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
 		}
 		// Setup blank ESF
@@ -158,21 +169,27 @@ VOID sys_init()
 		// Set the process stack pointer to the top of the stack
 		g_proc_table[i].m_stack = addr;
 		
-		/*// Stack information output
+		// Stack information output
 		rtx_dbug_outs("Process ");
-		printHexAddress(i);
+		printHexAddress(g_proc_table[i].m_process_ID);
 		rtx_dbug_outs(":\r\nStack begins := ");
 		printHexAddress(g_proc_table[i].m_stack);
 		rtx_dbug_outs(", Entry := ");
 		printHexAddress(g_proc_table[i].m_entry);
-		rtx_dbug_outs("\r\n");*/
+		rtx_dbug_outs("\r\n\r\n");
 	}
 	
-	asm("move.l %a7, g_asmBridge"); //Save kernel stack location
+	g_i_interrupted_proc = 0;
+	
+	//Save kernel stack location
+	asm("move.l %a7, g_asmBridge");
 	g_kernelStack = g_asmBridge;
 	
-	scheduler(); // Scheduler picks the next process, and loads it's stack pointer into g_asmBridge
+	// Set the default current process to the first process
+	g_current_process = &g_proc_table[0];
+	g_asmBridge = g_proc_table[0].m_stack;
 	
+	scheduler(); // Scheduler picks the next process, and loads it's stack pointer into g_asmBridge
 	asm("move.l g_asmBridge, %a7"); // Load the selected process' stack pointer into A7
 	
 	// Pop blank registers for first process and then RTE
@@ -198,28 +215,38 @@ VOID sys_init()
 VOID scheduler( VOID )
 {
 	asm( "move.w #0x2700,%sr" );
-	// If this isn't the first time the scheduler is run, then save the current_process information
-	if(g_first_run == 0)
+	
+	struct s_pcb * tmpIProc = 0;
+	g_current_process->m_stack = g_asmBridge;
+	if(g_current_process->m_state == 2) // If calling process was running 
 	{
-        g_current_process->m_stack = g_asmBridge;
-		if(g_current_process->m_state == 2) //If calling process was running 
+		g_current_process->m_state = 1;
+		push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, g_current_process);
+	}
+	
+	if(pop(&g_iProc_queue, g_iProc_queue_slots, &tmpIProc) == -1)
+	{
+		if(g_i_interrupted_proc != 0)
 		{
-			g_current_process->m_state = 1;
-			push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, g_current_process);
+			g_current_process = &g_i_interrupted_proc;
 		}
+		else
+		{
+			UINT8 i;
+			for(i = 0; i < NUM_PRIORITIES; i++)
+			{
+				if(pop(&g_priority_queues[i], g_queue_slots, &g_current_process) != -1)
+				{
+					break;
+				}
+			}
+		}
+		g_i_interrupted_proc = 0;
 	}
 	else
 	{
-		g_first_run = 0; // Record that we have run the scheduler once
-	}
-	
-	UINT8 i;
-	for(i = 0; i < NUM_PRIORITIES; i++)
-	{
-		if(pop(&g_priority_queues[i], g_queue_slots, &g_current_process) != -1)
-		{
-			break;
-		}
+		g_i_interrupted_proc = &g_current_process;
+		g_current_process = &tmpIProc;
 	}
 	
 	// Set process state of selected process to running and restore its stack
@@ -292,8 +319,6 @@ VOID send_message_trap_handler()
 	int process_ID;
 	VOID * messageEnvelope;
 	
-
-
 	asm("move.l %d2, g_asmBridge");
 	process_ID = g_asmBridge;
 	

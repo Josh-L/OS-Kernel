@@ -10,13 +10,14 @@
 #define MEM_BLK_SIZE 128
 #define NUM_MEM_BLKS 32
 
-#define NUM_PROCESSES 9
-#define NUM_I_PROCS 2
+#define NUM_PROCESSES 11
 #define NUM_TEST_PROCS 6
 
 #define NULL_PROC_ID	0
-#define UART_ID			7
-#define TIMER_ID		8
+#define KDC_PROC_ID		7
+#define CRT_PROC_ID		8
+#define UART_IPROC_ID	9
+#define TIMER_IPROC_ID	10
 
 extern BYTE __end;
 

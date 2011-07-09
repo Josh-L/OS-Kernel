@@ -85,7 +85,7 @@ void __attribute__ ((section ("__REGISTER_TEST_PROCS__")))register_test_proc()
     int i;
     rtx_dbug_outs((CHAR *)"rtx_test: register_test_proc()\r\n");
 
-    for (i =0; i< NUM_TEST_PROCS; i++ ) {
+    for (i = 0; i< NUM_TEST_PROCS; i++ ) {
         g_test_proc[i].pid = i + 1;
 		g_test_proc[i].priority = 3;
         g_test_proc[i].sz_stack = 2048;

@@ -65,15 +65,31 @@ int main()
 	g_proc_table[i+1].m_state = 1;
 	g_proc_table[i+1].m_entry = kdc;
 	g_proc_table[i+1].m_stack = g_free_mem = g_free_mem + 1024;
-	g_proc_table[i+1].i_process = 1;
+	g_proc_table[i+1].i_process = 0;
 	
 	// Print to screen process
 	g_proc_table[i+2].m_process_ID = 8;
-	g_proc_table[i+2].m_priority = 2;
+	g_proc_table[i+2].m_priority = 0;
 	g_proc_table[i+2].m_state = 1;
 	g_proc_table[i+2].m_entry = crt;
 	g_proc_table[i+2].m_stack = g_free_mem = g_free_mem + 1024;
-	g_proc_table[i+2].i_process = 1;
+	g_proc_table[i+2].i_process = 0;
+	
+	// UART ISR i process
+	g_proc_table[i+3].m_process_ID = 9;
+	g_proc_table[i+3].m_priority = 4;
+	g_proc_table[i+3].m_state = 1;
+	g_proc_table[i+3].m_entry = uart;
+	g_proc_table[i+3].m_stack = g_free_mem = g_free_mem + 1024;
+	g_proc_table[i+3].i_process = 1;
+	
+	// Timer ISR i process
+	g_proc_table[i+4].m_process_ID = 10;
+	g_proc_table[i+4].m_priority = 4;
+	g_proc_table[i+4].m_state = 1;
+	g_proc_table[i+4].m_entry = timer;
+	g_proc_table[i+4].m_stack = g_free_mem = g_free_mem + 1024;
+	g_proc_table[i+4].i_process = 1;
 
 	sys_init();
 

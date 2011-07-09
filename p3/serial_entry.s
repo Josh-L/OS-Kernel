@@ -20,6 +20,7 @@ asm_serial_entry:
 	
 	move.l %a7,g_asmBridge
 	jsr	c_serial_handler
+	jsr scheduler
 	move.l g_asmBridge, %a7
 	
 	move.l (%a7)+, %a6
