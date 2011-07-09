@@ -42,8 +42,7 @@ set_process_priority, and if command is "%W..." call the timer i-process).
 *********************************************************************************************************/
 void kdc()
 {
-    /*
-    char               buf[64] = {0}; //Store characters received from UART i-process
+    char               buf[64]; //Store characters received from UART i-process
     UINT8              buf_index = 0; //Track last character received 
     int                sender_ID;
     int                to_ID;     //process ID of process to send a message to in the case of %C command
@@ -144,7 +143,6 @@ void kdc()
             rtx_dbug_out_char('!');
         }
     }
-    */
 }
 
 
