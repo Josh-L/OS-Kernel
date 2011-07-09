@@ -24,9 +24,10 @@ extern BYTE __end;
 //Structs
 struct s_message
 {
-	int sender_id;
-	int dest_id;
-	int type_message;
+	int    sender_id;
+	int    dest_id;
+	int    type_message;
+    char * msg_text;
 };
 
 struct s_message_queue
