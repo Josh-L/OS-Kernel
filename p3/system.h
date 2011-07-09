@@ -23,9 +23,10 @@ extern BYTE __end;
 //Structs
 struct s_message
 {
-	int sender_id;
-	int dest_id;
-	int type_message;
+	int    sender_id;
+	int    dest_id;
+	int    type_message;
+    char * msg_text;
 };
 
 struct s_message_queue
@@ -74,7 +75,6 @@ int		release_processor();
 int		send_message(int process_ID, VOID * MessageEnvelope);
 VOID*	receive_message(int * sender_ID);
 SINT8 	push(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb * new_back);
-SINT8	push_to_front(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb * new_front)
 SINT8	pop(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb ** catcher);
 int		set_process_priority(int process_ID, int priority);
 int		get_process_priority(int process_ID);

@@ -20,7 +20,7 @@ LDFLAGS_RTX_TEST = -Trtx_test.ld -Wl,-Map=rtx_test.map
 
 RTX_OBJS = system.o dbug.o main_rtx.o Hex_to_ASCII.o i_proc.o
 RTX_LOADER_OBJS = dbug.o rtx_loader.o
-RTX_TEST_DUMMY_OBJS = dbug.o rtx_test_dummy.o Hex_to_ASCII.o
+RTX_TEST_DUMMY_OBJS = dbug.o rtx_test_dummy.o Hex_to_ASCII.o i_proc.o
 
 all: mdummy.s19 
 
@@ -50,7 +50,7 @@ m2.s19: rtx_test_dummy.s19 system.s19
 mdummy.s19: m2.s19 rtx_loader.s19
 	python merge.py mdummy.s19 m2.s19 rtx_loader.s19 
 	chmod u+x mdummy.s19
-
+    
 .c.o:
 	$(CC) $(CFLAGS) -c $< 
 

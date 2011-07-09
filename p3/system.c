@@ -480,39 +480,6 @@ SINT8 push(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s
     return 0;
 }
 
-SINT8 push_to_front(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb * new_front)
-{
-	// Find a free node to use
-	UINT8 i = 0;
-	for (i = 0; i < queue->num_slots; i++)
-	{
-		if(slots[i].data == 0)
-		{
-			break;
-		}
-	}
-	
-	// Trying to push a process that is already on the queues
-	if (i == queue->num_slots)
-	{
-		return -1;
-	}
-	
-	slots[i].data = new_front;
-	
-	if (queue->back == 0)
-	{
-		queue->front = &slots[i];
-	}
-	else
-	{
-		queue->back->next = &slots[i];
-	}
-	queue->back = &slots[i];
-	
-    return 0;
-}
-
 int set_process_priority(int process_ID, int priority)
 {
 	int returnVal = 0;
