@@ -36,6 +36,14 @@ void timer(){
 
 }
 
+void kdc(){
+
+}
+
+void crt(){
+
+}
+
 void c_serial_handler(){
 	
     BYTE temp;
@@ -44,7 +52,6 @@ void c_serial_handler(){
     {
         CharIn = SERIAL1_RD;
         Caught = FALSE;
-		iProcessInterrupted = 1;
 		rtx_dbug_outs("CALLING SCHEDULER \n\r");
 		SERIAL1_IMR = 2;
 		scheduler();

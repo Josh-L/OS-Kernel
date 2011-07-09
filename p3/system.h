@@ -11,7 +11,8 @@
 #define NUM_MEM_BLKS 32
 
 #define NUM_PROCESSES 9
-#define TEST_PROC 6
+#define NUM_I_PROCS 2
+#define NUM_TEST_PROCS 6
 
 #define NULL_PROC_ID	0
 #define UART_ID			7
@@ -22,22 +23,22 @@ extern BYTE __end;
 //Structs
 struct s_message
 {
-        int sender_id;
-        int dest_id;
-        int type_message;
+	int sender_id;
+	int dest_id;
+	int type_message;
 };
 
 struct s_message_queue
 {
-        struct s_message_queue_item * front;
-        struct s_message_queue_item * back;
-        UINT8 num_slots;
+	struct s_message_queue_item * front;
+	struct s_message_queue_item * back;
+	UINT8 num_slots;
 };
 
 struct s_message_queue_item
 {
-        struct s_message_queue_item * next;
-        struct s_message * data;
+	struct s_message_queue_item * next;
+	struct s_message * data;
 };
 
 struct s_pcb
@@ -73,6 +74,7 @@ int		release_processor();
 int		send_message(int process_ID, VOID * MessageEnvelope);
 VOID*	receive_message(int * sender_ID);
 SINT8 	push(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb * new_back);
+SINT8	push_to_front(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb * new_front)
 SINT8	pop(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb ** catcher);
 int		set_process_priority(int process_ID, int priority);
 int		get_process_priority(int process_ID);
@@ -83,18 +85,19 @@ SINT8	message_push(struct s_message_queue * queue, struct s_message_queue_item s
 SINT8	message_pop(struct s_message_queue * queue, struct s_message_queue_item slots[], struct s_message ** catcher);
 int		delayed_send(int process_ID, void * MessageEnvelope, int delay);
 SINT32	ColdFire_vbr_init( VOID );
+VOID	c_serial_handler();
 
-//System Processes
+// System Processes
 VOID	null_process();
+VOID	kdc();
+VOID	crt();
 
-//i-processes
+// i-processes
 VOID	uart();
 VOID	timer();
 
-//System Proc Init Array
-//Use this array in the main
-
 /*
+//System Proc Init Array
 struct s_pcb g_sysproc_table[] =
 {
 	{NULL_PROC_ID, 4, 1, 1024, null_process},
@@ -103,7 +106,4 @@ struct s_pcb g_sysproc_table[] =
 };
 */
 
-VOID	c_serial_handler();
-
-UINT32 iProcessInterrupted; //1 when true, 0 when false, otherwise address to pcb that it should return to
 #endif

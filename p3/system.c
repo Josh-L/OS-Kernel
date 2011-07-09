@@ -8,6 +8,10 @@ struct s_pcb 	    		*g_current_process;
 struct s_pcb_queue			g_priority_queues[NUM_PRIORITIES];
 struct s_pcb_queue_item 	g_queue_slots[NUM_PROCESSES]; // Have an array of ready queue slots
 
+// Queue to hold the single i process queue, which has priority over regular queues
+struct s_pcb_queue			g_iProc_queue;
+struct s_pcb_queue_item 	g_iProc_queue_slots[NUM_PROCESSES];
+
 // Array of queues to hold processes that are blocked waiting on memory
 struct s_pcb_queue			g_mem_blocking_queue[NUM_PRIORITIES];
 struct s_pcb_queue_item 	g_mem_blocking_queue_slots[NUM_PROCESSES];
@@ -15,7 +19,6 @@ struct s_pcb_queue_item 	g_mem_blocking_queue_slots[NUM_PROCESSES];
 UINT32						*g_kernelStack = 0; // Pointer to kernel stack
 UINT32						g_asmBridge = 0;
 UINT8						g_first_run = 1;
-UINT32						preIPI		= 0;
 
 extern struct s_pcb        	g_proc_table[NUM_PROCESSES];
 extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory region
@@ -24,7 +27,6 @@ extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory 
 VOID sys_init()
 {
 	// Set A7 to our kernel stack
-	iProcessInterrupted = 0;
 	g_kernelStack = g_free_mem = g_free_mem + KERNEL_STACK_SIZE;
 	g_asmBridge = g_kernelStack;
 	asm("move.l g_asmBridge, %a7");
@@ -197,27 +199,13 @@ VOID scheduler( VOID )
 {
 	asm( "move.w #0x2700,%sr" );
 	// If this isn't the first time the scheduler is run, then save the current_process information
-	preIPI = iProcessInterrupted;
 	if(g_first_run == 0)
 	{
-		//asm("move.l %a7, g_asmBridge");
         g_current_process->m_stack = g_asmBridge;
 		if(g_current_process->m_state == 2) //If calling process was running 
 		{
 			g_current_process->m_state = 1;
-			if (g_current_process->m_process_ID >= 0  && iProcessInterrupted == 0)
-			{
-				push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, g_current_process);
-			}else if(iProcessInterrupted == 1){
-				iProcessInterrupted = g_current_process;
-				rtx_dbug_outs("i eq g \r\n");
-				printHexAddress(iProcessInterrupted);
-				rtx_dbug_outs("\r\n");
-				printHexAddress(g_current_process);
-				rtx_dbug_outs("\r\n");
-			}else{
-				iProcessInterrupted = 0;
-			}
+			push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, g_current_process);
 		}
 	}
 	else
@@ -225,36 +213,20 @@ VOID scheduler( VOID )
 		g_first_run = 0; // Record that we have run the scheduler once
 	}
 	
-	if(preIPI == 0){
-		UINT8 i;
-		for(i = 0; i < NUM_PRIORITIES; i++)
+	UINT8 i;
+	for(i = 0; i < NUM_PRIORITIES; i++)
+	{
+		if(pop(&g_priority_queues[i], g_queue_slots, &g_current_process) != -1)
 		{
-			//if(pop(i, &g_current_process) != -1)
-			if(pop(&g_priority_queues[i], g_queue_slots, &g_current_process) != -1)
-			{
-				break;
-			}
+			break;
 		}
-		// Set process state of selected process to running and restore its stack
-
-	}else if(preIPI == 1){
-		g_current_process = &g_proc_table[7];
-
-	}else{
-		g_current_process = &g_proc_table[0];
-		rtx_dbug_outs("g eq i\r\n");
-		printHexAddress(iProcessInterrupted);
-		rtx_dbug_outs("\r\n");
-		printHexAddress(g_current_process);
-		rtx_dbug_outs("\r\n");
 	}
-		g_current_process->m_state = 2;
-		g_asmBridge = g_current_process->m_stack;
 	
-		rtx_dbug_outs("N: ");
-		rtx_dbug_out_char('0' + g_current_process->m_process_ID);
-		rtx_dbug_outs((CHAR *)"\r\n");
-		asm( "move.w #0x2000,%sr" );
+	// Set process state of selected process to running and restore its stack
+	g_current_process->m_state = 2;
+	g_asmBridge = g_current_process->m_stack;
+	
+	asm( "move.w #0x2000,%sr" );
 }
 
 int release_processor()
@@ -494,6 +466,39 @@ SINT8 push(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s
 	}
 	
 	slots[i].data = new_back;
+	
+	if (queue->back == 0)
+	{
+		queue->front = &slots[i];
+	}
+	else
+	{
+		queue->back->next = &slots[i];
+	}
+	queue->back = &slots[i];
+	
+    return 0;
+}
+
+SINT8 push_to_front(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb * new_front)
+{
+	// Find a free node to use
+	UINT8 i = 0;
+	for (i = 0; i < queue->num_slots; i++)
+	{
+		if(slots[i].data == 0)
+		{
+			break;
+		}
+	}
+	
+	// Trying to push a process that is already on the queues
+	if (i == queue->num_slots)
+	{
+		return -1;
+	}
+	
+	slots[i].data = new_front;
 	
 	if (queue->back == 0)
 	{

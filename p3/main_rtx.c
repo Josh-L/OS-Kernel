@@ -41,7 +41,7 @@ int main()
 	UINT8 i = 0;
 	
 	// Setup all processes
-	for(i = 0; i < TEST_PROC; i++)
+	for(i = 0; i < NUM_TEST_PROCS; i++)
 	{
 		g_proc_table[i].m_process_ID = g_test_proc[i].pid;
 		g_proc_table[i].m_priority = g_test_proc[i].priority;
@@ -63,7 +63,7 @@ int main()
 	g_proc_table[i+1].m_process_ID = 7;
 	g_proc_table[i+1].m_priority = 0;
 	g_proc_table[i+1].m_state = 1;
-	g_proc_table[i+1].m_entry = uart;
+	g_proc_table[i+1].m_entry = kdc;
 	g_proc_table[i+1].m_stack = g_free_mem = g_free_mem + 1024;
 	g_proc_table[i+1].i_process = 1;
 	
@@ -71,7 +71,7 @@ int main()
 	g_proc_table[i+2].m_process_ID = 8;
 	g_proc_table[i+2].m_priority = 2;
 	g_proc_table[i+2].m_state = 1;
-	g_proc_table[i+2].m_entry = timer;
+	g_proc_table[i+2].m_entry = crt;
 	g_proc_table[i+2].m_stack = g_free_mem = g_free_mem + 1024;
 	g_proc_table[i+2].i_process = 1;
 
