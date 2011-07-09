@@ -153,6 +153,7 @@ VOID sys_init()
 		if(g_proc_table[i].i_process == 0){
 			push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
 		}
+		
 		// Setup blank ESF
 		addr = g_proc_table[i].m_stack;
 		*addr = g_proc_table[i].m_entry;
@@ -245,8 +246,17 @@ VOID scheduler( VOID )
 	}
 	else
 	{
-		g_i_interrupted_proc = &g_current_process;
-		g_current_process = &tmpIProc;
+		g_i_interrupted_proc = g_current_process;
+		g_current_process = tmpIProc;
+		g_current_process->m_state = 1;
+		
+		rtx_dbug_outs("\r\nProcess ID: ");
+		printHexAddress(tmpIProc->m_process_ID);
+		rtx_dbug_outs("\r\nStack: ");
+		printHexAddress(tmpIProc->m_stack);
+		rtx_dbug_outs("\r\nEntry: ");
+		printHexAddress(tmpIProc->m_entry);
+		rtx_dbug_outs("\r\n");
 	}
 	
 	// Set process state of selected process to running and restore its stack
@@ -347,7 +357,7 @@ VOID send_message_trap_handler()
 			{
 				g_proc_table[i].m_state = 1;
 				push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
-				if(g_current_process->m_priority > g_proc_table[i].m_priority){
+				if(g_current_process->m_priority < g_proc_table[i].m_priority){
 					release_processor();
 				}
 			
@@ -987,6 +997,65 @@ SINT8 message_push(struct s_message_queue * queue, struct s_message_queue_item s
 	}
 	
 	slots[i].data = new_back;
+	
+	if (queue->back == 0)
+	{
+		queue->front = &slots[i];
+	}
+	else
+	{
+		queue->back->next = &slots[i];
+	}
+	queue->back = &slots[i];
+	
+    return 0;
+}
+
+CHAR buffer_pop(struct s_char_queue * queue, struct s_char_queue_item slots[])
+{
+	CHAR returnValue;
+	
+	if (queue->front == 0)
+	{
+		return -1;
+	}
+	
+	returnValue = queue->front->data;
+	
+	queue->front->data = '\0';
+	
+	if (queue->front == queue->back)
+	{	
+		queue->front = 0;
+		queue->back = 0;
+	}
+	else
+	{
+		queue->front = queue->front->next;
+	}
+	
+    return ;
+}
+
+SINT8 buffer_push(struct s_char_queue * queue, struct s_char_queue_item slots[], char c)
+{
+	// Find a free node to use
+	UINT8 i = 0;
+	for (i = 0; i < queue->num_slots; i++)
+	{
+		if(slots[i].data == '\0')
+		{
+			break;
+		}
+	}
+	
+	// Trying to push a process that is already on the queues
+	if (i == queue->num_slots)
+	{
+		return -1;
+	}
+	
+	slots[i].data = c;
 	
 	if (queue->back == 0)
 	{

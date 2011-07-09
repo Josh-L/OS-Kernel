@@ -51,7 +51,7 @@ int main()
 		g_proc_table[i].i_process = 0;
 	}
 	
-	//Adding Null Proc to g_proc_table
+	// Adding Null Proc to g_proc_table
 	g_proc_table[i].m_process_ID = 0;
 	g_proc_table[i].m_priority = 4;
 	g_proc_table[i].m_state = 1;
