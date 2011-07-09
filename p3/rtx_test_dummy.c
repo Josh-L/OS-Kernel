@@ -15,9 +15,8 @@ void test1()
 { 
     while (1) 
     {
-        //kdc();
 		rtx_dbug_out_char('1');
-		rtx_dbug_outs((CHAR *)"\r\n");       
+		//rtx_dbug_outs((CHAR *)"\r\n");       
 		g_test_fixture.release_processor();
 	}
 }
@@ -26,14 +25,20 @@ void test2()
 {
     struct s_message * tmp;
     int msg_type = 3;
-    char * msg_text = "GO FUCK YOURSELF";
+    char * msg_text = "%C 1 0\r";
+    UINT8 i = 0;
     while (1) 
     {
 		rtx_dbug_out_char('2');
 		rtx_dbug_outs((CHAR *)"\r\n");
-        tmp = (struct s_message *)g_test_fixture.request_memory_block();
-        tmp->type_message = msg_type;
-        tmp->msg_text = msg_text;
+        while(msg_text[i] != '\0')
+        {
+            tmp = (struct s_message *)g_test_fixture.request_memory_block();
+            tmp->type_message = msg_type;
+            tmp->msg_text = msg_text[i];
+            g_test_fixture.send_message(7, (VOID *)tmp);
+            i++;
+        }
 		g_test_fixture.release_processor();
 	}	
  }
@@ -44,7 +49,7 @@ void test3()
     while (1) 
     {
 		rtx_dbug_out_char('3');
-		rtx_dbug_outs((CHAR *)"\r\n");
+		//rtx_dbug_outs((CHAR *)"\r\n");
 		g_test_fixture.release_processor();
     }
 }
@@ -54,7 +59,7 @@ void test4()
     while (1) 
     {
 		rtx_dbug_out_char('4');
-		rtx_dbug_outs((CHAR *)"\r\n");
+		//rtx_dbug_outs((CHAR *)"\r\n");
 		g_test_fixture.release_processor();
     }
 }
@@ -64,7 +69,7 @@ void test5()
     while (1) 
     {
 		rtx_dbug_out_char('5');
-		rtx_dbug_outs((CHAR *)"\r\n");
+		//rtx_dbug_outs((CHAR *)"\r\n");
 		g_test_fixture.release_processor();
     }
 }
@@ -74,7 +79,7 @@ void test6()
     while (1)
     {
 		rtx_dbug_out_char('6');
-		rtx_dbug_outs((CHAR *)"\r\n");
+		//rtx_dbug_outs((CHAR *)"\r\n");
         g_test_fixture.release_processor();
     }
 }

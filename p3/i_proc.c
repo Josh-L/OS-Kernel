@@ -1,4 +1,5 @@
 #include "system.h"
+#include "Hex_to_ASCII.h"
 
 extern struct s_pcb 			g_proc_table[NUM_PROCESSES];
 extern struct s_pcb_queue		g_iProc_queue;
@@ -41,25 +42,109 @@ set_process_priority, and if command is "%W..." call the timer i-process).
 *********************************************************************************************************/
 void kdc()
 {
+    /*
+    char               buf[64] = {0}; //Store characters received from UART i-process
+    UINT8              buf_index = 0; //Track last character received 
     int                sender_ID;
+    int                to_ID;     //process ID of process to send a message to in the case of %C command
+    int                new_priority; //new priority to use in set_process_priority in the case of %C command
     struct s_message * msg; 
     char             * msg_body;
     
-    rtx_dbug_out_char('k');
-    msg = (struct s_message *)receive_message(&sender_ID);
-    msg_body = (char *)(msg + 0x7);
-    rtx_dbug_outs((CHAR *)msg_body);
-    
-    //Keyboard input
-    if(msg->type_message == 3)
-    {
+    while(1)
+    {     
+        do
+        {
+            msg = (struct s_message *)receive_message(&sender_ID);
+            msg_body = msg->msg_text;
+            buf[buf_index] = msg_body[0];
+            rtx_dbug_out_char(buf[buf_index]);
+            buf_index++;
+            release_memory_block((VOID *)msg);
+        }while(buf[buf_index - 1] != '\r');
         
+        buf[buf_index] = '\n';
+        rtx_dbug_out_char(buf[buf_index]);
+        buf_index++;
+        buf[buf_index] = '\0';
+        rtx_dbug_out_char(buf[buf_index]);
+        
+        rtx_dbug_out_char('k');
+       
+        if(buf[0] == '%')
+        {
+            if(buf[1] == 'W')
+            {
+                
+            }
+            else if(buf[1] == 'C')
+            {
+                rtx_dbug_out_char(buf[1]);
+                if(buf[2] == 0x20)
+                {
+                    rtx_dbug_out_char(buf[2]);
+                    switch(buf[3])
+                    {
+                        case '1':
+                        case '2':
+                        case '3':
+                        case '4':
+                        case '5':
+                        case '6':
+                        case '7':
+                        case '8':
+                        case '9':
+                            rtx_dbug_out_char(buf[3]);
+                            to_ID = (int)buf[3];
+                            if(buf[4] == 0x20)
+                            {
+                                switch(buf[5])
+                                {
+                                    case '0':
+                                    case '1':
+                                    case '2':
+                                    case '3':
+                                        new_priority = (int)buf[5];
+                                        if(buf[6] == 0xd)
+                                        {
+                                            set_process_priority(to_ID, new_priority);
+                                        }
+                                        else
+                                        {
+                                            rtx_dbug_out_char('!');
+                                        }
+                                        break;
+                                    default:
+                                        rtx_dbug_out_char('!');
+                                        break;
+                                }
+                            }
+                            else
+                            {
+                                rtx_dbug_out_char('!');
+                            }
+                            break;
+                        default:
+                            rtx_dbug_out_char('!');
+                            break;
+                    }
+                }
+                else
+                {
+                    rtx_dbug_out_char('!');
+                }
+            }
+            else
+            {
+                rtx_dbug_out_char('!');
+            }
+        }
+        else
+        {
+            rtx_dbug_out_char('!');
+        }
     }
-    //Command registration  
-    else if(msg->type_message == 4)
-    {
-    
-    }
+    */
 }
 
 
@@ -71,14 +156,19 @@ memory used by the message.
 *********************************************************************************************************/
 void crt()
 {
-    int                sender_ID;
-    struct s_message * msg; 
-    
-    msg = (struct s_message *)receive_message(&sender_ID);
-    
-    if(msg->type_message == 5)
+    while(1)
     {
+        int                sender_ID;
+        struct s_message * msg; 
         
+        rtx_dbug_out_char('c');
+        
+        msg = (struct s_message *)receive_message(&sender_ID);
+        
+        if(msg->type_message == 5)
+        {
+            
+        }
     }
 }
 
