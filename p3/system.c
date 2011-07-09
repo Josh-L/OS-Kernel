@@ -1017,7 +1017,7 @@ CHAR buffer_pop(struct s_char_queue * queue, struct s_char_queue_item slots[])
 	
 	if (queue->front == 0)
 	{
-		return -1;
+		return '\0';
 	}
 	
 	returnValue = queue->front->data;
@@ -1034,7 +1034,7 @@ CHAR buffer_pop(struct s_char_queue * queue, struct s_char_queue_item slots[])
 		queue->front = queue->front->next;
 	}
 	
-    return ;
+    return returnValue;
 }
 
 SINT8 buffer_push(struct s_char_queue * queue, struct s_char_queue_item slots[], char c)
