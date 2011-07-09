@@ -10,13 +10,14 @@
 #define MEM_BLK_SIZE 128
 #define NUM_MEM_BLKS 32
 
-#define NUM_PROCESSES 9
-#define NUM_I_PROCS 2
+#define NUM_PROCESSES 11
 #define NUM_TEST_PROCS 6
 
 #define NULL_PROC_ID	0
-#define UART_ID			7
-#define TIMER_ID		8
+#define KDC_PROC_ID		7
+#define CRT_PROC_ID		8
+#define UART_IPROC_ID	9
+#define TIMER_IPROC_ID	10
 
 extern BYTE __end;
 
@@ -74,7 +75,6 @@ int		release_processor();
 int		send_message(int process_ID, VOID * MessageEnvelope);
 VOID*	receive_message(int * sender_ID);
 SINT8 	push(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb * new_back);
-SINT8	push_to_front(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb * new_front)
 SINT8	pop(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb ** catcher);
 int		set_process_priority(int process_ID, int priority);
 int		get_process_priority(int process_ID);
