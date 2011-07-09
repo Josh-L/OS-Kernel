@@ -4,27 +4,25 @@ extern struct s_pcb 			g_proc_table[NUM_PROCESSES];
 extern struct s_pcb_queue		g_iProc_queue;
 extern struct s_pcb_queue_item 	g_iProc_queue_slots[5];
 
-void uart(){
-	void uart()
-    {	
-        while(1)	
+void uart()
+{	
+    while(1)	
+    {
+        /*BYTE temp;	
+        temp = SERIAL1_UCSR;
+        if(temp & 1)	
         {
-            /*BYTE temp;	
-            temp = SERIAL1_UCSR;
-            if(temp & 1)	
-            {
-              //CharIn = SERIAL1_RD;
-              SERIAL1_IMR = 2; 	
-            Caught = TRUE; 	
-            CharIn = '\0';	
-            else if (temp & 4)	
-              //SERIAL1_WD = CharOut;	
-              SERIAL1_IMR = 2;
-            }*/	
-            set_process_priority(1, 0);	
-            release_processor();
-        }	
-    }
+          //CharIn = SERIAL1_RD;
+          SERIAL1_IMR = 2; 	
+        Caught = TRUE; 	
+        CharIn = '\0';	
+        else if (temp & 4)	
+          //SERIAL1_WD = CharOut;	
+          SERIAL1_IMR = 2;
+        }*/	
+        set_process_priority(1, 0);	
+        release_processor();
+    }	
 }
 
 void timer()
