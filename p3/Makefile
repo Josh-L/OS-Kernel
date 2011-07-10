@@ -4,9 +4,11 @@
 # Thomas Reidemeister
 # Irene Huang
 
+#-D_CFSERVER_
+
 CC=m68k-elf-gcc
 CXX=m68k-elf-g++
-CFLAGS= -Wall -m5307 -pipe -nostdlib -D_CFSERVER_
+CFLAGS= -Wall -m5307 -pipe -nostdlib
 LD=m68k-elf-gcc
 AS=m68k-elf-as
 AR=m68k-elf-ar
@@ -29,7 +31,7 @@ all: mdummy.s19
 #  ASM first, so that it is located at the beginning of our program.
 
 system.s19: $(RTX_OBJS)
-	$(CC) $(CFLAGS) $(LDFLAGS_RTX) -o system.bin $(ASM) serial_entry.s release_proc_trap.s set_proc_priority_trap.s get_proc_priority_trap.s request_mem_block_trap.s release_mem_block_trap.s send_msg_trap.s receive_msg_trap.s $(RTX_OBJS) 
+	$(CC) $(CFLAGS) $(LDFLAGS_RTX) -o system.bin $(ASM) serial_entry.s release_proc_trap.s set_proc_priority_trap.s get_proc_priority_trap.s request_mem_block_trap.s release_mem_block_trap.s send_msg_trap.s receive_msg_trap.s timer_entry.s $(RTX_OBJS) 
 	$(OBJCPY) --output-format=srec system.bin system.s19
 	$(OBJDUMP) -xdC system.bin > system.lst
 

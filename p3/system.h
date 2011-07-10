@@ -22,6 +22,13 @@
 extern BYTE __end;
 
 //Structs
+struct delayed_send_request
+{
+	int exp;      //Counter tracking whether the request has expired yet
+	int process_ID; //ID of process to send message to
+	VOID * envelope; //Pointer to message envelope
+};
+
 struct s_char_queue
 {
 	struct s_char_queue_item * front;
@@ -39,7 +46,7 @@ struct s_message
 {
 	int sender_id;
 	int dest_id;
-	int type_message;
+	int type;
     char * msg_text;
 };
 

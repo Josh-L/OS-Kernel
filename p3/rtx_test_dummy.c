@@ -25,20 +25,15 @@ void test2()
 {
     struct s_message * tmp;
     int msg_type = 3;
-    char * msg_text = "%C 1 0\r";
-    UINT8 i = 0;
+    char * msg_text = "%WS20:45:10\r";
     while (1) 
     {
 		rtx_dbug_out_char('2');
-		rtx_dbug_outs((CHAR *)"\r\n");
-        while(msg_text[i] != '\0')
-        {
-            tmp = (struct s_message *)g_test_fixture.request_memory_block();
-            tmp->type_message = msg_type;
-            tmp->msg_text = msg_text[i];
-            g_test_fixture.send_message(7, (VOID *)tmp);
-            i++;
-        }
+		//rtx_dbug_outs((CHAR *)"\r\n");
+		tmp = (struct s_message *)g_test_fixture.request_memory_block();
+		tmp->type = msg_type;
+		tmp->msg_text = msg_text;
+		g_test_fixture.send_message(7, (VOID *)tmp);
 		g_test_fixture.release_processor();
 	}	
  }

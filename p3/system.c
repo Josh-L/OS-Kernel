@@ -26,6 +26,12 @@ struct s_pcb 	    		*g_i_interrupted_proc;
 extern struct s_pcb 		g_proc_table[NUM_PROCESSES];
 extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory region
 
+struct delayed_send_request send_reqs[10];
+
+UINT8 g_hours = 0;
+UINT8 g_minutes = 0;
+UINT8 g_seconds = 0;
+
 //Initializations
 VOID sys_init()
 {
@@ -53,6 +59,27 @@ VOID sys_init()
     // Disable all interupts
     asm( "move.w #0x2700,%sr" );
     ColdFire_vbr_init();
+	
+	/*
+     * Store the timer ISR at auto-vector #6
+     */
+    asm( "move.l #timer_entry,%d0" );
+    asm( "move.l %d0,0x10000078" );
+
+    /*
+     * Setup to use auto-vectored interupt level 6, priority 3
+     */
+    TIMER0_ICR = 0x9B;
+
+    /*
+     * Set the reference counts, ~1ms
+     */
+    TIMER0_TRR = 176;
+
+    /*
+     * Setup the timer prescaler and stuff
+     */
+    TIMER0_TMR = 0xFF1B;
 	
     // Store the serial ISR at user vector #64
     asm( "move.l #asm_serial_entry,%d0" );
@@ -98,6 +125,14 @@ VOID sys_init()
 	
 	UINT8 i = 0;
 	UINT32 * addr;
+	
+	// Initialize delayed_send array
+	for (i = 0; i < 10; i++)
+	{
+		send_reqs[i].exp = -1;
+		send_reqs[i].process_ID = -1;
+		send_reqs[i].envelope = 0;
+	}
 	
 	// Initialize free memory blocks
 	for (i = 0; i < NUM_MEM_BLKS; i++)
@@ -357,7 +392,7 @@ VOID send_message_trap_handler()
 			{
 				g_proc_table[i].m_state = 1;
 				push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
-				if(g_current_process->m_priority < g_proc_table[i].m_priority){
+				if(g_current_process->m_priority > g_proc_table[i].m_priority){
 					release_processor();
 				}
 			
@@ -635,7 +670,7 @@ VOID set_process_priority_trap_handler()
 	g_proc_table[i].m_priority = priority;
 	
 	// Check to make sure the process isn't blocked
-	if (g_proc_table[i].m_state != 1)
+	if (g_proc_table[i].m_state != 3 || g_proc_table[i].m_state != 0)
 	{
 		// First remove the process from the old priority list
 		if (g_priority_queues[oldPriority].front == 0)
