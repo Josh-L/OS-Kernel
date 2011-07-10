@@ -11,6 +11,10 @@ struct s_pcb_queue_item 	g_queue_slots[NUM_PROCESSES]; // Have an array of ready
 // Queue to hold the i process queue, which has priority over regular queues
 struct s_pcb_queue			g_iProc_queue;
 struct s_pcb_queue_item 	g_iProc_queue_slots[5];
+struct s_pcb 	    		*g_i_interrupted_process;
+
+
+
 
 // Array of queues to hold processes that are blocked waiting on memory
 struct s_pcb_queue			g_mem_blocking_queue[NUM_PRIORITIES];
@@ -18,10 +22,6 @@ struct s_pcb_queue_item 	g_mem_blocking_queue_slots[NUM_PROCESSES];
 
 UINT32						*g_kernelStack = 0; // Pointer to kernel stack
 UINT32						g_asmBridge = 0;
-
-// Schduler related variables
-UINT8						g_first_run = 1;
-struct s_pcb 	    		*g_i_interrupted_proc;
 
 extern struct s_pcb 		g_proc_table[NUM_PROCESSES];
 extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory region
@@ -60,25 +60,17 @@ VOID sys_init()
     asm( "move.w #0x2700,%sr" );
     ColdFire_vbr_init();
 	
-	/*
-     * Store the timer ISR at auto-vector #6
-     */
+    // Store the timer ISR at auto-vector #6
     asm( "move.l #timer_entry,%d0" );
     asm( "move.l %d0,0x10000078" );
 
-    /*
-     * Setup to use auto-vectored interupt level 6, priority 3
-     */
+    // Setup to use auto-vectored interupt level 6, priority 3
     TIMER0_ICR = 0x9B;
 
-    /*
-     * Set the reference counts, ~1ms
-     */
+    // Set the reference counts, ~1ms
     TIMER0_TRR = 176;
 
-    /*
-     * Setup the timer prescaler and stuff
-     */
+    // Setup the timer prescaler and stuff
     TIMER0_TMR = 0xFF1B;
 	
     // Store the serial ISR at user vector #64
@@ -123,6 +115,7 @@ VOID sys_init()
     // Enable all interupts
     asm( "move.w #0x2000,%sr" );
 	
+	
 	UINT8 i = 0;
 	UINT32 * addr;
 	
@@ -157,6 +150,7 @@ VOID sys_init()
 	g_iProc_queue.front = 0;
 	g_iProc_queue.back = 0;
 	g_iProc_queue.num_slots = 5;
+	g_i_interrupted_process = 0;
 	for(i = 0; i < 5; i++)
 	{
 		g_iProc_queue_slots[i].data = 0;
@@ -215,8 +209,6 @@ VOID sys_init()
 		rtx_dbug_outs("\r\n\r\n");
 	}
 	
-	g_i_interrupted_proc = 0;
-	
 	//Save kernel stack location
 	asm("move.l %a7, g_asmBridge");
 	g_kernelStack = g_asmBridge;
@@ -250,22 +242,26 @@ VOID sys_init()
 
 VOID scheduler( VOID )
 {
-	asm( "move.w #0x2700,%sr" );
-	
 	struct s_pcb * tmpIProc = 0;
 	g_current_process->m_stack = g_asmBridge;
-	if(g_current_process->m_state == 2) // If calling process was running 
-	{
-		g_current_process->m_state = 1;
-		push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, g_current_process);
-	}
-	
+
 	if(pop(&g_iProc_queue, g_iProc_queue_slots, &tmpIProc) == -1)
 	{
-		if(g_i_interrupted_proc != 0)
+		// If calling process was running
+		if(g_current_process->m_state == 2)
 		{
-			g_current_process = &g_i_interrupted_proc;
+			g_current_process->m_state = 1;
+			if(g_current_process->i_process == 0)
+			{
+				push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, g_current_process);
+			}
 		}
+		// If there is an interrupted process, then resume it, else look at the ready queues for the next process
+		if(g_i_interrupted_process != 0)
+		{
+			g_current_process = g_i_interrupted_process;
+			g_i_interrupted_process = 0;
+		}	
 		else
 		{
 			UINT8 i;
@@ -276,29 +272,23 @@ VOID scheduler( VOID )
 					break;
 				}
 			}
+			
 		}
-		g_i_interrupted_proc = 0;
 	}
 	else
 	{
-		g_i_interrupted_proc = g_current_process;
-		g_current_process = tmpIProc;
+		if(g_current_process->i_process == 0)
+		{
+			g_i_interrupted_process = g_current_process;
+		}
 		g_current_process->m_state = 1;
-		
-		rtx_dbug_outs("\r\nProcess ID: ");
-		printHexAddress(tmpIProc->m_process_ID);
-		rtx_dbug_outs("\r\nStack: ");
-		printHexAddress(tmpIProc->m_stack);
-		rtx_dbug_outs("\r\nEntry: ");
-		printHexAddress(tmpIProc->m_entry);
-		rtx_dbug_outs("\r\n");
+		g_current_process = tmpIProc;
+		g_current_process->m_state = 2;
 	}
 	
 	// Set process state of selected process to running and restore its stack
 	g_current_process->m_state = 2;
 	g_asmBridge = g_current_process->m_stack;
-	
-	asm( "move.w #0x2000,%sr" );
 }
 
 int release_processor()
@@ -856,7 +846,7 @@ VOID request_memory_block_trap_handler()
 		}
 	}
 	
-	if(freeBlock == 0)
+	if(freeBlock == 0 && g_current_process->i_process == 0)
 	{
 		/*If program reaches this point, there are no free memory blocks (freeBlock still unassigned).
 		This means the current process must be set to blocked, added to the appropriate
@@ -881,6 +871,10 @@ VOID request_memory_block_trap_handler()
 				break;
 			}
 		}
+	}
+	else
+	{
+		freeBlock = 0;
 	}
 	
     g_asmBridge = freeBlock;
@@ -1057,7 +1051,7 @@ CHAR buffer_pop(struct s_char_queue * queue, struct s_char_queue_item slots[])
 	
 	returnValue = queue->front->data;
 	
-	queue->front->data = '\0';
+	queue->front->data = 0;
 	
 	if (queue->front == queue->back)
 	{	
@@ -1078,7 +1072,7 @@ SINT8 buffer_push(struct s_char_queue * queue, struct s_char_queue_item slots[],
 	UINT8 i = 0;
 	for (i = 0; i < queue->num_slots; i++)
 	{
-		if(slots[i].data == '\0')
+		if(slots[i].data == 0)
 		{
 			break;
 		}

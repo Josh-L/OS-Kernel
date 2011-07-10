@@ -5,14 +5,14 @@
 
 //g_test_fixture.
 //g_test_fixture.release_processor();
-//g_test_fixture.get_process_priority(0)
-//g_test_fixture.set_process_priority(0, 0)
+//g_test_fixture.get_process_priority(0);
+//g_test_fixture.set_process_priority(0, 0);
 //g_test_fixture.request_memory_block();
 //g_test_fixture.release_memory_block((VOID *)tmp);
 //g_test_fixture.receive_message(&i);
 
 void test1()
-{ 
+{
     while (1) 
     {
 		rtx_dbug_out_char('1');
@@ -30,10 +30,10 @@ void test2()
     {
 		rtx_dbug_out_char('2');
 		//rtx_dbug_outs((CHAR *)"\r\n");
-		tmp = (struct s_message *)g_test_fixture.request_memory_block();
+		/*tmp = (struct s_message *)g_test_fixture.request_memory_block();
 		tmp->type = msg_type;
 		tmp->msg_text = msg_text;
-		g_test_fixture.send_message(7, (VOID *)tmp);
+		g_test_fixture.send_message(7, (VOID *)tmp);*/
 		g_test_fixture.release_processor();
 	}	
  }

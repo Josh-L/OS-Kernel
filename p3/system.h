@@ -72,7 +72,7 @@ struct s_pcb
     VOID    (*m_entry)();
 	struct	s_message_queue msg_queue;
 	struct	s_message_queue_item msg_queue_slots[NUM_PROCESSES];
-	UINT8	i_process;
+	UINT8	i_process; // 0 means is not, 1 means it is
 };
 
 struct s_pcb_queue_item

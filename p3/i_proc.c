@@ -4,28 +4,88 @@
 extern struct s_pcb 			g_proc_table[NUM_PROCESSES];
 extern struct s_pcb_queue		g_iProc_queue;
 extern struct s_pcb_queue_item 	g_iProc_queue_slots[5];
+extern struct s_pcb				*g_current_process;
 
 CHAR charIn = 0;
+CHAR charOut = '\0';
+
 extern struct delayed_send_request send_reqs[10];
 extern UINT8 g_hours;
 extern UINT8 g_minutes;
 extern UINT8 g_seconds;
-
 UINT32 g_counter = 0;
 UINT8  g_wall_clock_enabled = 0;
 UINT8  g_update_clock = 0;
+BYTE rw;
+
+struct s_char_queue				outputBuffer;
+struct s_char_queue_item		outputBufferSlots[100];
 
 void uart()
-{	
-    while(1)	
-    {
-        rtx_dbug_outs("UART\r\n");
+{
+	VOID * tmp;
+	
+	// Input buffer that holds the command to be sent to the keyboard decoder
+	char inputBuffer[100];
+	UINT8 inputBufferIndex = 0;
+	
+    while(1)
+    {	
+		rtx_dbug_outs("\r\nUART\r\n");
+		// If we are reading from the UART
+		if(rw & 1)
+		{
+			// Add the character to the input buffer which will be sent to the keybaord decoder
+			inputBuffer[inputBufferIndex] = charIn;
+			
+			// Put the character in the output buffer
+			buffer_push(&outputBuffer, outputBufferSlots, inputBuffer[inputBufferIndex]);
+			
+			inputBufferIndex++;
+			
+			// If the user presses enter to finish the command
+			if(inputBuffer[inputBufferIndex - 1] == '\r')
+			{
+				// Reset input buffer
+				inputBufferIndex = 0;
+				
+				// Send the input buffer which holds the user's command in a message to the keyboard decoder
+				tmp = request_memory_block();
+				if(tmp != 0)
+				{
+					struct s_message * msg = (struct s_message *)tmp;
+					msg->type = 1;
+					msg->msg_text = inputBuffer;
+					send_message(7, tmp);
+				}
+				
+				// Put a newline character in the output queue
+				buffer_push(&outputBuffer, outputBufferSlots, '\n');
+			}
+			
+			// Enable transmit interrupts so that the user's input is echoed out
+			SERIAL1_IMR = 0x03;
+		}
+		else if (rw & 4)
+		{	
+			// Write the next character waiting in the output buffer
+			charOut = buffer_pop(&outputBuffer, outputBufferSlots);
+			
+			// If the buffer is not empty
+			if(charOut != 0)
+			{
+				// Enable transmit interrupts so that the user's input is echoed out
+				SERIAL1_IMR = 0x03;
+			}
+		}
+		
         release_processor();
     }	
 }
 
 void timer()
 {
+	rtx_dbug_outs("\r\nTIMER\r\n");
 	UINT8 i = 0;
 	while(1)
 	{
@@ -62,7 +122,8 @@ void kdc()
     char             * msg_body;
     
     while(1)
-    {     
+    {
+		rtx_dbug_outs("\r\nKDC\r\n");
 		msg = (struct s_message *)receive_message(&sender_ID);
 		msg_body = msg->msg_text;
 		printHexAddress(msg->sender_id);
@@ -275,7 +336,6 @@ void kdc()
     }
 }
 
-
 /*********************************************************************************************************
 Call receive_message. Once a message is received, check if it is the correct type (type 5). If it is not
 the right type, do nothing. If it is the correct message type, output the text contained in the 
@@ -284,29 +344,93 @@ memory used by the message.
 *********************************************************************************************************/
 void crt()
 {
-	int                sender_ID;
-    struct s_message * msg; 
+	// Initialize the output buffer queue
+	UINT8 i;
+	outputBuffer.front = 0;
+	outputBuffer.back = 0;
+	outputBuffer.num_slots = 100;
+	
+	int					sender_ID;
+    struct s_message	* msg; 
 
+	
+	for(i = 0; i < outputBuffer.num_slots; i++)
+	{
+		outputBufferSlots[i].data = 0;
+		outputBufferSlots[i].next = 0;
+	}
+	
     while(1)
     {
-        rtx_dbug_out_char('c');
-        
-        msg = (struct s_message *)receive_message(&sender_ID);
-        
-        if(msg->type == 5)
-        {
-            
-        }
+		rtx_dbug_outs("\r\nCRT\r\n");
+		msg = (struct s_message *)receive_message(&sender_ID);
+
+        rtx_dbug_outs("CRT - RECEIVED MESSAGE\r\n");
+		rtx_dbug_outs("SENDER: ");
+		printHexAddress(msg->sender_id);
+		rtx_dbug_outs("\r\n");
+		rtx_dbug_outs("DEST: ");
+		printHexAddress(msg->dest_id);
+		rtx_dbug_outs("\r\n");
+		rtx_dbug_outs("TYPE: ");
+		printHexAddress(msg->type);
+		rtx_dbug_outs("\r\n");
+		/*
+        //if(msg->type == 0)
+        //{
+            // Start pushing characters to the outputbuffer (up to 1024 chracters, or until a null character is hit)
+			UINT16 i = 0;
+			for(i = 0; i < 100; i++)
+			{
+				char c = msg->msg_text[0];
+				if(c != '\0')
+				{
+					buffer_push(&outputBuffer, outputBufferSlots, c);
+				}
+			}
+			rtx_dbug_outs("CRT - MESSAGE LENGTH: ");
+			printHexAddress(i);
+			rtx_dbug_outs("\r\n");
+			// Enable transmit interrupts for the message to be displayed
+			SERIAL1_IMR = 0x03;
+        //}*/
     }
 }
 
 void c_serial_handler()
 {
-    // Just schedule the UART i process
-	charIn = SERIAL1_RD;
-	//SERIAL1_IMR = 0x02; // Disable transmit interrupts
-	push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[7]);
-	release_processor(); 
+    // Acknowledge the interrupt and determine if its a read or write
+    rw = SERIAL1_UCSR;
+    
+	if(rw & 1)
+	{
+
+		charIn = SERIAL1_RD;
+		if(g_current_process->i_process == 0)
+		{
+
+			push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[9]);
+			release_processor();
+		}
+	}
+	else if(rw & 4)
+	{
+		// Output character, default is a null
+		SERIAL1_WD = charOut;
+		
+		// Stop transmit interrupts
+		SERIAL1_IMR = 0x02;
+		
+		// Schedule iProc to see if more characters should be output
+		push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[9]);
+		
+		// Only release if the process is not another i-process
+		if(g_current_process->i_process == 0)
+		{
+			release_processor();
+		}
+	}
+
 }
 
 void c_timer_handler()
@@ -314,7 +438,8 @@ void c_timer_handler()
 	/*
 	Decrement expiration counter of all pending delayed_send requests and schedule timer i-process
 	*/
-	UINT8 i = 0;
+	
+	/*UINT8 i = 0;
 	for(i = 0; i < 10; i++)
 	{
 		if(send_reqs[i].exp > 0)
@@ -347,4 +472,6 @@ void c_timer_handler()
 		}
 	}
 	//push timer() to i-process queue
+	*/
+	TIMER0_TER = 2;
 }
