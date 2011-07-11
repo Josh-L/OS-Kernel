@@ -9,10 +9,6 @@ extern struct s_pcb				*g_current_process;
 CHAR charIn = 0;
 CHAR charOut = 0;
 
-UINT8 timer_iproc = 0;
-UINT8 read_iproc = 0;
-UINT8 write_iproc = 0;
-
 extern struct delayed_send_request send_reqs[10];
 extern UINT8 g_hours;
 extern UINT8 g_minutes;
@@ -36,7 +32,7 @@ void uart()
     while(1)
     {
 		// If we are reading from the UART
-		if(rw & 1)
+		if((rw & 1) && (inputBufferIndex < 100))
 		{
 			// Add the character to the input buffer which will be sent to the keybaord decoder
 			inputBuffer[inputBufferIndex] = charIn;
@@ -52,7 +48,7 @@ void uart()
 				// Reset input buffer
 				inputBufferIndex = 0;
 				
-				/*// Send the input buffer which holds the user's command in a message to the keyboard decoder
+				// Send the input buffer which holds the user's command in a message to the keyboard decoder
 				tmp = 0;
 				tmp = (struct s_message *)request_memory_block();
 				if(tmp != 0)
@@ -60,17 +56,14 @@ void uart()
 					tmp->type = 0;
 					tmp->msg_text = inputBuffer;
 					send_message(7, (VOID *)tmp);
-				}*/
+				}
 				
 				// Put a newline character in the output queue
 				buffer_push(&outputBuffer, outputBufferSlots, '\n');
 			}
 			
-			//charOut = charIn;
-			
 			// Enable transmit interrupts so that the user's input is echoed out
 			SERIAL1_IMR = 0x03;
-			read_iproc = 0;
 		}
 		else if (rw & 4)
 		{
@@ -83,7 +76,6 @@ void uart()
 				// Enable transmit interrupts so that the user's input is echoed out
 				SERIAL1_IMR = 0x03;
 			}
-			write_iproc = 0;
 		}
 		
         release_processor();
@@ -134,7 +126,6 @@ void kcd()
     {
 		msg = (struct s_message *)receive_message(&sender_ID);
 		msg_body = msg->msg_text;
-		
 		// Ensure message type is correct
 		if(msg->type == messageType)
 		{
@@ -384,7 +375,7 @@ void crt()
         if(msg->type == 3)
         {
             // Start pushing characters to the outputbuffer (up to 100 chracters, or until a null character is hit)
-			UINT16 i = 0;
+			UINT32 i = 0;
 			for(i = 0; i < outputBuffer.num_slots; i++)
 			{
 				c = msg->msg_text[i];
@@ -400,6 +391,7 @@ void crt()
 			// Enable transmit interrupts for the message to be displayed
 			SERIAL1_IMR = 0x03;
         }
+		release_memory_block((VOID *)msg);
     }
 }
 
@@ -413,18 +405,13 @@ void c_serial_handler()
     
 	if(rw & 1)
 	{
-
 		charIn = SERIAL1_RD;
-		
-		//if(read_iproc == 0)
-		//{
-			read_iproc = 1;
-			push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[9]);
-			if(g_current_process->i_process == 0)
-			{
-				release_processor();
-			}
-		//}
+
+		push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[9]);
+		if(g_current_process->i_process == 0)
+		{
+			release_processor();
+		}
 	}
 	else if(rw & 4)
 	{
@@ -434,18 +421,14 @@ void c_serial_handler()
 		// Stop transmit interrupts
 		SERIAL1_IMR = 0x02;
 		
-		//if(write_iproc == 0)
-		//{
-			write_iproc = 1;
-			// Schedule iProc to see if more characters should be output
-			push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[9]);
-			
-			// Only release if the process is not another i-process
-			if(g_current_process->i_process == 0)
-			{
-				release_processor();
-			}
-		//}
+		// Schedule iProc to see if more characters should be output
+		push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[9]);
+		
+		// Only release if the process is not another i-process
+		if(g_current_process->i_process == 0)
+		{
+			release_processor();
+		}
 	}
 
 }

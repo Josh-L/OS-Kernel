@@ -7,7 +7,7 @@
 #define KERNEL_STACK_SIZE	2048 // Another temporary value that is suitable for now
 #define NUM_PRIORITIES		5
 
-#define MEM_BLK_SIZE 128
+#define MEM_BLK_SIZE 2048
 #define NUM_MEM_BLKS 32
 
 #define NUM_PROCESSES 11
@@ -33,7 +33,7 @@ struct s_char_queue
 {
 	struct s_char_queue_item * front;
 	struct s_char_queue_item * back;
-	UINT8 num_slots;
+	UINT32 num_slots;
 };
 
 struct s_char_queue_item
