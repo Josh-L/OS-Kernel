@@ -56,7 +56,7 @@ VOID sys_init()
     // Disable all interupts
     asm( "move.w #0x2700,%sr" );
     ColdFire_vbr_init();
-	/*
+	
     // Store the timer ISR at auto-vector #6
     asm( "move.l #timer_entry,%d0" );
     asm( "move.l %d0,0x10000078" );
@@ -69,7 +69,7 @@ VOID sys_init()
 	
     // Setup the timer prescaler and stuff
     TIMER0_TMR = 0xFF1B;
-	*/
+	
     // Store the serial ISR at user vector #64
     asm( "move.l #asm_serial_entry,%d0" );
     asm( "move.l %d0,0x10000100" );
