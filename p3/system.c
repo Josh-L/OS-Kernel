@@ -25,6 +25,9 @@ extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory 
 
 struct delayed_send_request send_reqs[10];
 
+struct s_char_queue				outputBuffer;
+struct s_char_queue_item		outputBufferSlots[2000];
+
 UINT8 g_hours = 0;
 UINT8 g_minutes = 0;
 UINT8 g_seconds = 0;
@@ -109,7 +112,8 @@ VOID sys_init()
     mask &= 0x0003dfff;
     SIM_IMR = mask;
 	
-	UINT8 i = 0;
+	// i needs to be UINT32 for output buffer initialization
+	UINT32 i = 0;
 	UINT32 * addr;
 	
 	// Initialize delayed_send array
@@ -119,6 +123,11 @@ VOID sys_init()
 		send_reqs[i].process_ID = -1;
 		send_reqs[i].envelope = 0;
 	}
+	
+	// Initialize the output buffer queue
+	outputBuffer.front = 0;
+	outputBuffer.back = 0;
+	outputBuffer.num_slots = 2000;
 	
 	// Initialize free memory blocks
 	for (i = 0; i < NUM_MEM_BLKS; i++)
@@ -200,6 +209,12 @@ VOID sys_init()
 		rtx_dbug_outs(", Entry := ");
 		printHexAddress(g_proc_table[i].m_entry);
 		rtx_dbug_outs("\r\n\r\n");
+	}
+	
+	for(i = 0; i < outputBuffer.num_slots; i++)
+	{
+		outputBufferSlots[i].data = 0;
+		outputBufferSlots[i].next = 0;
 	}
 	
 	//Save kernel stack location

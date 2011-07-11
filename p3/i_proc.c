@@ -18,8 +18,8 @@ UINT8  g_wall_clock_enabled = 0;
 UINT8  g_update_clock = 0;
 BYTE rw;
 
-struct s_char_queue				outputBuffer;
-struct s_char_queue_item		outputBufferSlots[100];
+extern struct s_char_queue				outputBuffer;
+extern struct s_char_queue_item			outputBufferSlots[2000];
 
 void uart()
 {
@@ -34,34 +34,91 @@ void uart()
 		// If we are reading from the UART
 		if((rw & 1) && (inputBufferIndex < 100))
 		{
-			// Add the character to the input buffer which will be sent to the keybaord decoder
-			inputBuffer[inputBufferIndex] = charIn;
-			
-			// Put the character in the output buffer
-			buffer_push(&outputBuffer, outputBufferSlots, inputBuffer[inputBufferIndex]);
-			
-			inputBufferIndex++;
-			
-			// If the user presses enter to finish the command
-			if(inputBuffer[inputBufferIndex - 1] == '\r')
+#ifdef _DEBUG_HOTKEYS
+			UINT8 i;
+			struct s_message * output;
+			if(charIn == '~')
 			{
-				// Reset input buffer
-				inputBufferIndex = 0;
+				// Display processes currently on the ready queues and their priority
+				output = (struct s_message *)request_memory_block();
+				output->type = 3;
+				output->msg_text = "Processes currently in ready queues:\n\r";
+				send_message(8, (VOID *)output);
 				
-				// Send the input buffer which holds the user's command in a message to the keyboard decoder
-				tmp = 0;
-				tmp = (struct s_message *)request_memory_block();
-				if(tmp != 0)
+				/*
+				for(i = 0; i < NUM_PROCESSES; i++)
 				{
-					tmp->type = 0;
-					tmp->msg_text = inputBuffer;
-					send_message(7, (VOID *)tmp);
+					if(g_proc_table[i].m_state == 3)
+					{
+						// Do output
+					}
 				}
-				
-				// Put a newline character in the output queue
-				buffer_push(&outputBuffer, outputBufferSlots, '\n');
+				*/
 			}
-			
+			else if(charIn == '`')
+			{
+				// Display processes currently on the blocked on memory queue and their priorities
+				/*
+				for(i = 0; i < NUM_PROCESSES; i++)
+				{
+					if(g_proc_table[i].m_state == 3)
+					{
+						// Do output
+					}
+				}
+				*/
+			}
+			else if(charIn == '!')
+			{
+				// Display processes currently on the blocking on receive and their priorities
+				/*
+				for(i = 0; i < NUM_PROCESSES; i++)
+				{
+					if(g_proc_table[i].m_state == 3)
+					{
+						// Do output
+					}
+				}
+				*/
+			}
+			else if(charIn == '\t')
+			{
+				// Invoke an error LOL
+				asm("rte");
+			}
+			else
+			{
+#endif
+				// Add the character to the input buffer which will be sent to the keybaord decoder
+				inputBuffer[inputBufferIndex] = charIn;
+				
+				// Put the character in the output buffer
+				buffer_push(&outputBuffer, outputBufferSlots, inputBuffer[inputBufferIndex]);
+				
+				inputBufferIndex++;
+				
+				// If the user presses enter to finish the command
+				if(inputBuffer[inputBufferIndex - 1] == '\r')
+				{
+					// Reset input buffer
+					inputBufferIndex = 0;
+					
+					// Send the input buffer which holds the user's command in a message to the keyboard decoder
+					tmp = 0;
+					tmp = (struct s_message *)request_memory_block();
+					if(tmp != 0)
+					{
+						tmp->type = 0;
+						tmp->msg_text = inputBuffer;
+						send_message(7, (VOID *)tmp);
+					}
+					
+					// Put a newline character in the output queue
+					buffer_push(&outputBuffer, outputBufferSlots, '\n');
+				}
+#ifdef _DEBUG_HOTKEYS
+			}
+#endif
 			// Enable transmit interrupts so that the user's input is echoed out
 			SERIAL1_IMR = 0x03;
 		}
@@ -351,22 +408,10 @@ message body using the UART i-process. Finally, before returning, call release_m
 memory used by the message.
 *********************************************************************************************************/
 void crt()
-{
-	// Initialize the output buffer queue
-	UINT8 i;
-	outputBuffer.front = 0;
-	outputBuffer.back = 0;
-	outputBuffer.num_slots = 100;
-	
+{	
 	int					sender_ID;
     struct s_message	* msg;
 	char				c;
-	
-	for(i = 0; i < outputBuffer.num_slots; i++)
-	{
-		outputBufferSlots[i].data = 0;
-		outputBufferSlots[i].next = 0;
-	}
 	
     while(1)
     {
