@@ -110,7 +110,7 @@ VOID	c_serial_handler();
 
 // System Processes
 VOID	null_process();
-VOID	kdc();
+VOID	kcd();
 VOID	crt();
 
 // i-processes

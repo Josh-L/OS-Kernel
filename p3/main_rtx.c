@@ -63,7 +63,7 @@ int main()
 	g_proc_table[i+1].m_process_ID = 7;
 	g_proc_table[i+1].m_priority = 0;
 	g_proc_table[i+1].m_state = 1;
-	g_proc_table[i+1].m_entry = kdc;
+	g_proc_table[i+1].m_entry = kcd;
 	g_proc_table[i+1].m_stack = g_free_mem = g_free_mem + 1024;
 	g_proc_table[i+1].i_process = 0;
 	

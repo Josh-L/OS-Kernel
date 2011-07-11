@@ -10,11 +10,8 @@ struct s_pcb_queue_item 	g_queue_slots[NUM_PROCESSES]; // Have an array of ready
 
 // Queue to hold the i process queue, which has priority over regular queues
 struct s_pcb_queue			g_iProc_queue;
-struct s_pcb_queue_item 	g_iProc_queue_slots[5];
+struct s_pcb_queue_item 	g_iProc_queue_slots[10];
 struct s_pcb 	    		*g_i_interrupted_process;
-
-
-
 
 // Array of queues to hold processes that are blocked waiting on memory
 struct s_pcb_queue			g_mem_blocking_queue[NUM_PRIORITIES];
@@ -59,20 +56,20 @@ VOID sys_init()
     // Disable all interupts
     asm( "move.w #0x2700,%sr" );
     ColdFire_vbr_init();
-	
+	/*
     // Store the timer ISR at auto-vector #6
     asm( "move.l #timer_entry,%d0" );
     asm( "move.l %d0,0x10000078" );
 
     // Setup to use auto-vectored interupt level 6, priority 3
     TIMER0_ICR = 0x9B;
-
+	
     // Set the reference counts, ~1ms
     TIMER0_TRR = 176;
-
+	
     // Setup the timer prescaler and stuff
     TIMER0_TMR = 0xFF1B;
-	
+	*/
     // Store the serial ISR at user vector #64
     asm( "move.l #asm_serial_entry,%d0" );
     asm( "move.l %d0,0x10000100" );
@@ -111,10 +108,6 @@ VOID sys_init()
     mask = SIM_IMR;
     mask &= 0x0003dfff;
     SIM_IMR = mask;
-    
-    // Enable all interupts
-    asm( "move.w #0x2000,%sr" );
-	
 	
 	UINT8 i = 0;
 	UINT32 * addr;
@@ -149,9 +142,9 @@ VOID sys_init()
 	// Initialize i process queue
 	g_iProc_queue.front = 0;
 	g_iProc_queue.back = 0;
-	g_iProc_queue.num_slots = 5;
+	g_iProc_queue.num_slots = 10;
 	g_i_interrupted_process = 0;
-	for(i = 0; i < 5; i++)
+	for(i = 0; i < g_iProc_queue.num_slots; i++)
 	{
 		g_iProc_queue_slots[i].data = 0;
 		g_iProc_queue_slots[i].next = 0;
@@ -236,6 +229,9 @@ VOID sys_init()
 	asm("move.l (%a7)+, %d2");
 	asm("move.l (%a7)+, %d1");
 	asm("move.l (%a7)+, %d0");
+	
+	// Enable all interupts
+    asm( "move.w #0x2000,%sr" );
 	
 	asm("rte");
 }
@@ -382,7 +378,7 @@ VOID send_message_trap_handler()
 			{
 				g_proc_table[i].m_state = 1;
 				push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
-				if(g_current_process->m_priority > g_proc_table[i].m_priority){
+				if(g_current_process->m_priority > g_proc_table[i].m_priority && g_current_process->i_process == 0){
 					release_processor();
 				}
 			
@@ -846,35 +842,34 @@ VOID request_memory_block_trap_handler()
 		}
 	}
 	
-	if(freeBlock == 0 && g_current_process->i_process == 0)
+	if(freeBlock == 0)
 	{
-		/*If program reaches this point, there are no free memory blocks (freeBlock still unassigned).
-		This means the current process must be set to blocked, added to the appropriate
-		blocking queue and release processor until it is moved to the ready queue by a
-		release_memory_block operation.*/
-		
-
-		g_current_process->m_state = 0;
-		push(&g_mem_blocking_queue[g_current_process->m_priority], g_mem_blocking_queue_slots, g_current_process); //Push current process to memory_blocked queue indicating that it's waiting for a memory block
-			
-			
-		release_processor();
-		
-		// Obtain reserved block
-		for (i = 0; i < NUM_MEM_BLKS; i++)
-		{
-			if (gp_mem_pool_lookup[i] == 2)
+		if (g_current_process->i_process == 0)
 			{
+			/*If program reaches this point, there are no free memory blocks (freeBlock still unassigned).
+			This means the current process must be set to blocked, added to the appropriate
+			blocking queue and release processor until it is moved to the ready queue by a
+			release_memory_block operation.*/
+			
+
+			g_current_process->m_state = 0;
+			push(&g_mem_blocking_queue[g_current_process->m_priority], g_mem_blocking_queue_slots, g_current_process); //Push current process to memory_blocked queue indicating that it's waiting for a memory block
 				
-				gp_mem_pool_lookup[i] = 1;
-				freeBlock = (VOID *)gp_mem_pool_list[i];
-				break;
+				
+			release_processor();
+			
+			// Obtain reserved block
+			for (i = 0; i < NUM_MEM_BLKS; i++)
+			{
+				if (gp_mem_pool_lookup[i] == 2)
+				{
+					
+					gp_mem_pool_lookup[i] = 1;
+					freeBlock = (VOID *)gp_mem_pool_list[i];
+					break;
+				}
 			}
 		}
-	}
-	else
-	{
-		freeBlock = 0;
 	}
 	
     g_asmBridge = freeBlock;

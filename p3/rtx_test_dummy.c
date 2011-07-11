@@ -15,7 +15,7 @@ void test1()
 {
     while (1) 
     {
-		rtx_dbug_out_char('1');
+		//rtx_dbug_out_char('1');
 		//rtx_dbug_outs((CHAR *)"\r\n");       
 		g_test_fixture.release_processor();
 	}
@@ -23,12 +23,12 @@ void test1()
 
 void test2()
 {
-    struct s_message * tmp;
-    int msg_type = 3;
-    char * msg_text = "%WS20:45:10\r";
+    //struct s_message * tmp;
+    //int msg_type = 3;
+    //char * msg_text = "%WS20:45:10\r";
     while (1) 
     {
-		rtx_dbug_out_char('2');
+		//rtx_dbug_out_char('2');
 		//rtx_dbug_outs((CHAR *)"\r\n");
 		/*tmp = (struct s_message *)g_test_fixture.request_memory_block();
 		tmp->type = msg_type;
@@ -43,7 +43,7 @@ void test3()
 {
     while (1) 
     {
-		rtx_dbug_out_char('3');
+		//rtx_dbug_out_char('3');
 		//rtx_dbug_outs((CHAR *)"\r\n");
 		g_test_fixture.release_processor();
     }
@@ -53,7 +53,7 @@ void test4()
 {
     while (1) 
     {
-		rtx_dbug_out_char('4');
+		//rtx_dbug_out_char('4');
 		//rtx_dbug_outs((CHAR *)"\r\n");
 		g_test_fixture.release_processor();
     }
@@ -63,7 +63,7 @@ void test5()
 {
     while (1) 
     {
-		rtx_dbug_out_char('5');
+		//rtx_dbug_out_char('5');
 		//rtx_dbug_outs((CHAR *)"\r\n");
 		g_test_fixture.release_processor();
     }
@@ -73,7 +73,7 @@ void test6()
 {
     while (1)
     {
-		rtx_dbug_out_char('6');
+		//rtx_dbug_out_char('6');
 		//rtx_dbug_outs((CHAR *)"\r\n");
         g_test_fixture.release_processor();
     }
