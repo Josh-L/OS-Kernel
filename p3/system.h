@@ -109,6 +109,8 @@ SINT8	message_pop(struct s_message_queue * queue, struct s_message_queue_item sl
 int		delayed_send(int process_ID, void * MessageEnvelope, int delay);
 SINT32	ColdFire_vbr_init( VOID );
 VOID	c_serial_handler();
+CHAR    buffer_pop(struct s_char_queue * queue, struct s_char_queue_item slots[]);
+SINT8   buffer_push(struct s_char_queue * queue, struct s_char_queue_item slots[], char c);
 
 // System Processes
 VOID	null_process();
