@@ -32,7 +32,7 @@ int __main( void )
 
 int main() 
 {
-
+	asm( "move.w #0x2700,%sr" );
     rtx_dbug_outs((CHAR *)"rtx: Entering main()\r\n");
 
     /* get the third party test proc initialization info */

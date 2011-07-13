@@ -60,7 +60,6 @@ VOID sys_init()
 	asm("move.l %d0,0x1000009C");
 	
     // Disable all interupts
-    asm( "move.w #0x2700,%sr" );
     ColdFire_vbr_init();
 	
     // Store the timer ISR at auto-vector #6
@@ -71,7 +70,7 @@ VOID sys_init()
     TIMER0_ICR = 0x9B;
 	
     // Set the reference counts, ~1ms
-    TIMER0_TRR = 176;
+    TIMER0_TRR = 0x160;
 	
     // Setup the timer prescaler and stuff
     TIMER0_TMR = 0xFF1B;
@@ -133,9 +132,9 @@ VOID sys_init()
 	outputBuffer.num_slots = 2000;
 	
 	// Clock and display variable initialization
-	UINT32 g_clock_counter = 0;
-	UINT8  g_clock_enabled = 0;
-	UINT8  g_timer_is_scheduled = 0;
+	g_clock_counter = 0;
+	g_clock_enabled = 0;
+	g_timer_is_scheduled = 0;
 	
 	// Initialize free memory blocks
 	for (i = 0; i < NUM_MEM_BLKS; i++)

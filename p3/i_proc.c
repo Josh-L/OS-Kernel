@@ -207,6 +207,7 @@ void timer()
 
 	while(1)
 	{
+		//rtx_dbug_out_char('#');
 		temp_counter = g_clock_counter;
 		g_clock_counter = 0;
         //Update pending delay request message expiration counters
@@ -226,14 +227,16 @@ void timer()
 					{
 						g_proc_table[i].m_state = 1;
 						push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
-						if(g_current_process->m_priority > g_proc_table[i].m_priority && g_current_process->i_process == 0){
+						/*if(g_current_process->m_priority > g_proc_table[i].m_priority && g_current_process->i_process == 0){
 							release_processor();
-						}
+						}*/
 					}
+					
 					
 					// Free up the delayed send space
 					send_reqs[i].envelope = 0;
 				}
+				
 			}
 		}
 		
@@ -245,7 +248,8 @@ void timer()
         {
             if(ticks_since_last_run >= 1000)
             {
-				ticks_since_last_run -= 1000;
+				//rtx_dbug_out_char('#');
+				ticks_since_last_run = 0;
                 g_seconds++;
                 if (g_seconds >= 60)
                 {
@@ -261,7 +265,7 @@ void timer()
                         }
                     }
                 }
-                /*tmp = (g_seconds % 0xa);
+                tmp = (g_seconds % 0xa);
                 msg_text[7] = (BYTE)(tmp + 0x30);
                 msg_text[6] = (BYTE)(((g_seconds - tmp)/0xa) + 0x30);
                 tmp = (g_minutes % 0xa);
@@ -272,15 +276,18 @@ void timer()
                 msg_text[0] = (BYTE)(((g_hours - tmp)/0xa) + 0x30);
                 
                 //Request memory block and send message to CRT for display
+				msg = 0;
                 msg = (struct s_message *)request_memory_block();
-                if(msg!= 0)
+				
+                if(msg != 0)
                 {
                     msg->type = 3;
                     msg->msg_text = msg_text;
                     send_message(8, (VOID *)msg);
-                }*/
+                }
             }
         }
+	
 		g_timer_is_scheduled = 0;
 		release_processor();
 	}
@@ -306,7 +313,7 @@ void kcd()
     UINT8              tmp_minutes = 0;
     UINT8              tmp_seconds = 0;
     UINT8              valid       = 0;
-    
+	
     while(1)
     {
 		msg = (struct s_message *)receive_message(&sender_ID);
@@ -781,17 +788,21 @@ void c_timer_handler()
 	
 	// Disable interrupts
 	asm("move.w #0x2700,%sr");
-	/*
-	// Increment ticks_since_last_run (tracks how many times the ISR has run since the last time the process
+	
+	// Increment g_clock_counter (tracks how many times the ISR has run since the last time the process
     // actually ran) and schedule the i-process if it's not already currently scheduled.
 	
 	g_clock_counter++;
-    
+
     if(g_timer_is_scheduled == 0)
     {
 		g_timer_is_scheduled = 1;
         push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[10]);
+		if(g_current_process->i_process == 0)
+		{
+			release_processor();
+		}
     }
-	*/
+	
 	TIMER0_TER = 2;
 }

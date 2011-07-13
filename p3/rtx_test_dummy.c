@@ -18,7 +18,7 @@ void test1()
     while (1) 
     {
 		//rtx_dbug_out_char('1');
-		//rtx_dbug_outs((CHAR *)"\r\n");       
+		//rtx_dbug_outs((CHAR *)"\r\n");
 		g_test_fixture.release_processor();
 	}
 }
