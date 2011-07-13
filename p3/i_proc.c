@@ -27,7 +27,6 @@ UINT8 g_seconds;
 
 void uart()
 {
-	charIn = 0;
 	
 	UINT8 newLine = 0;
 	
