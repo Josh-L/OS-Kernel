@@ -209,14 +209,14 @@ VOID sys_init()
 		// Set the process stack pointer to the top of the stack
 		g_proc_table[i].m_stack = addr;
 		
-		// Stack information output
+		/*// Stack information output
 		rtx_dbug_outs("Process ");
 		printHexAddress(g_proc_table[i].m_process_ID);
 		rtx_dbug_outs(":\r\nStack begins := ");
 		printHexAddress(g_proc_table[i].m_stack);
 		rtx_dbug_outs(", Entry := ");
 		printHexAddress(g_proc_table[i].m_entry);
-		rtx_dbug_outs("\r\n\r\n");
+		rtx_dbug_outs("\r\n\r\n");*/
 	}
 	
 	for(i = 0; i < outputBuffer.num_slots; i++)
@@ -495,13 +495,11 @@ VOID receive_message_trap_handler()
 	if(message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg) == -1){
 		g_current_process->m_state = 3;
 		release_processor();
-		rtx_dbug_outs("Checking mailbox...\r\n");
 		message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg);
 	}
-
+	
 	*sender_ID = msg->sender_id;
 	
-
 	g_asmBridge = msg;
 	asm("move.l g_asmBridge, %d1");
 }
@@ -1026,11 +1024,7 @@ VOID delayed_send_trap_handler()
 		g_asmBridge = -1;
 	}
 	else
-	{
-		rtx_dbug_outs("Delay for this message will be: ");
-		printHexAddress(delay);
-		rtx_dbug_outs("\r\n");
-		
+	{	
 		struct s_message * new_message = messageEnvelope;
 		new_message->sender_id = g_current_process->m_process_ID;
 		new_message->dest_id = process_ID;

@@ -28,10 +28,11 @@ UINT8 g_seconds;
 void uart()
 {
 	charIn = 0;
-	charOut = 0;
+	
+	UINT8 newLine = 0;
 	
 	// Input buffer that holds the command to be sent to the keyboard decoder
-	char inputBuffer[100];
+	char inputBuffer[102];
 	UINT8 inputBufferIndex = 0;
 	
 	struct s_message * tmp = 0;
@@ -53,16 +54,24 @@ void uart()
 				if(g_clock_enabled == 0)
 				{
 					g_clock_enabled = 1;
-					rtx_dbug_outs("Turning clock OFF\r\n");
+					rtx_dbug_outs("Clock turning ON\r\n");
 				}
 				else
 				{
 					g_clock_enabled = 0;
-					rtx_dbug_outs("Turning clock ON\r\n");
+					rtx_dbug_outs("Clock turning OFF\r\n");
 				}
 			}
-			else if(charIn == '+')
+			else if(charIn == '=')
 			{
+				if(g_clock_enabled == 0)
+				{
+					rtx_dbug_outs("Clock OFF\r\n");
+				}
+				else
+				{
+					rtx_dbug_outs("Clock ON\r\n");
+				}
 				rtx_dbug_outs("Seconds: ");
 				printHexAddress(g_seconds);
 				rtx_dbug_outs("\r\n");
@@ -72,43 +81,7 @@ void uart()
 				rtx_dbug_outs("Hours: ");
 				printHexAddress(g_hours);
 				rtx_dbug_outs("\r\n");
-			}
-			else if(charIn == '=')
-			{
-				rtx_dbug_outs("Checking for delayed messsages...\r\n");
-				UINT8 i;
-				for(i = 0; i < NUM_DELAYED_SLOTS; i++)
-				{
-					if (send_reqs[i].envelope != 0)
-					{
-						rtx_dbug_outs("Found one, time left: ");
-						printHexAddress(send_reqs[i].exp);
-						rtx_dbug_outs("\r\nTaking away time...\r\n");
-						send_reqs[i].exp -= 5;
-						
-						if(send_reqs[i].exp <= 0)
-						{
-							rtx_dbug_outs("Successfully ready to send to slot: ");
-							printHexAddress(send_reqs[i].process_slot);
-							rtx_dbug_outs("\r\n");
-							// Send the message
-							message_push(&g_proc_table[send_reqs[i].process_slot].msg_queue, g_proc_table[send_reqs[i].process_slot].msg_queue_slots, (struct s_message *)send_reqs[i].exp);
-							
-							// If receiving process is currently blocking on message from sender, unblock and push to ready queue
-							if(g_proc_table[i].m_state == 3)
-							{
-								g_proc_table[i].m_state = 1;
-								push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
-							}
-							
-							rtx_dbug_outs("Freeing up space.\r\n");
-							// Free up the delayed send space
-							send_reqs[i].envelope = 0;
-							
-							rtx_dbug_outs("Done.\r\n");
-						}
-					}
-				}
+				
 			}
 			else if(charIn == '~')
 			{
@@ -174,6 +147,9 @@ void uart()
 				// If the user presses enter to finish the command
 				if(inputBuffer[inputBufferIndex - 1] == '\r')
 				{
+					inputBuffer[inputBufferIndex] = '\n';
+					inputBuffer[inputBufferIndex + 1] = '\0';
+					
 					// Reset input buffer
 					inputBufferIndex = 0;
 					
@@ -183,9 +159,7 @@ void uart()
 					if(tmp != 0)
 					{
 						tmp->type = 0;
-						tmp->msg_text = inputBuffer;
-                        rtx_dbug_outs(tmp->msg_text);
-                        rtx_dbug_outs("PROBLEM?\n\r");
+						tmp->msg_text = &inputBuffer;
 						send_message(7, (VOID *)tmp);
 					}
 					
@@ -238,15 +212,15 @@ void timer()
         //Update pending delay request message expiration counters
 		for(i = 0; i < NUM_DELAYED_SLOTS; i++)
 		{
-            if (send_reqs[i].exp != 0)
+			if (send_reqs[i].envelope != 0)
 			{
 				send_reqs[i].exp -= temp_counter;
 				
 				if(send_reqs[i].exp <= 0)
 				{
 					// Send the message
-					message_push(&g_proc_table[send_reqs[i].process_slot].msg_queue, g_proc_table[send_reqs[i].process_slot].msg_queue_slots, (struct s_message *)send_reqs[i].exp);
-				
+					message_push(&g_proc_table[send_reqs[i].process_slot].msg_queue, g_proc_table[send_reqs[i].process_slot].msg_queue_slots, (struct s_message *)send_reqs[i].envelope);
+					
 					// If receiving process is currently blocking on message from sender, unblock and push to ready queue
 					if(g_proc_table[i].m_state == 3)
 					{
@@ -255,7 +229,6 @@ void timer()
 						if(g_current_process->m_priority > g_proc_table[i].m_priority && g_current_process->i_process == 0){
 							release_processor();
 						}
-					
 					}
 					
 					// Free up the delayed send space
@@ -288,7 +261,7 @@ void timer()
                         }
                     }
                 }
-                tmp = (g_seconds % 0xa);
+                /*tmp = (g_seconds % 0xa);
                 msg_text[7] = (BYTE)(tmp + 0x30);
                 msg_text[6] = (BYTE)(((g_seconds - tmp)/0xa) + 0x30);
                 tmp = (g_minutes % 0xa);
@@ -305,7 +278,7 @@ void timer()
                     msg->type = 3;
                     msg->msg_text = msg_text;
                     send_message(8, (VOID *)msg);
-                }
+                }*/
             }
         }
 		g_timer_is_scheduled = 0;
@@ -338,9 +311,6 @@ void kcd()
     {
 		msg = (struct s_message *)receive_message(&sender_ID);
 		msg_body = msg->msg_text;
-        rtx_dbug_outs(msg_body);
-        rtx_dbug_outs("\n\r");
-        rtx_dbug_outs("end\n\r");
 		// Ensure message type is correct
 		if(msg->type == messageType)
 		{
@@ -603,11 +573,11 @@ void kcd()
                                 if((msg_body[11] == 0xd) && (valid == 1))
                                 {
                                     //Update clock hours, minutes, and seconds variables then enable wall clock
-                                    g_hours = tmp_hours;
+                                    result = "Clock set.\n\r";
+									g_hours = tmp_hours;
                                     g_minutes = tmp_minutes;
                                     g_seconds = tmp_seconds;
                                     g_clock_enabled = 1;
-                                    result = "Clock set.\n\r";
                                 }
                                 else
                                 {
@@ -628,6 +598,7 @@ void kcd()
 						{
 							//Turn wall clock off
                             g_clock_enabled = 0;
+							result = "Clock turned off.\n\r";
 						}
 						else
 						{
@@ -665,6 +636,9 @@ void kcd()
 											new_priority = (int)(msg_body[5] - 0x30);
 											if(msg_body[6] == 0xd)
 											{
+												result = "Changing priority of process x to priority y.\r\n";
+												result[29] = (char)(0x30 + to_ID);
+												result[43] = (char)(0x30 + new_priority);
 												set_process_priority(to_ID, new_priority);
 											}
 											else
