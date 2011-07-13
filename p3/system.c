@@ -23,14 +23,15 @@ UINT32						g_asmBridge = 0;
 extern struct s_pcb 		g_proc_table[NUM_PROCESSES];
 extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory region
 
-struct delayed_send_request send_reqs[10];
+struct delayed_send_request send_reqs[NUM_DELAYED_SLOTS];
 
-struct s_char_queue				outputBuffer;
-struct s_char_queue_item		outputBufferSlots[2000];
+struct s_char_queue			outputBuffer;
+struct s_char_queue_item	outputBufferSlots[2000];
 
-UINT8 g_hours = 0;
-UINT8 g_minutes = 0;
-UINT8 g_seconds = 0;
+// i-process variables
+UINT32 g_clock_counter;
+UINT8  g_clock_enabled;
+UINT8  g_timer_is_scheduled;
 
 //Initializations
 VOID sys_init()
@@ -55,6 +56,8 @@ VOID sys_init()
 	asm("move.l %d0,0x10000094");
 	asm("move.l #receive_msg_trap,%d0");
 	asm("move.l %d0,0x10000098");
+	asm("move.l #delayed_send_trap,%d0");
+	asm("move.l %d0,0x1000009C");
 	
     // Disable all interupts
     asm( "move.w #0x2700,%sr" );
@@ -117,10 +120,10 @@ VOID sys_init()
 	UINT32 * addr;
 	
 	// Initialize delayed_send array
-	for (i = 0; i < 10; i++)
+	for (i = 0; i < NUM_DELAYED_SLOTS; i++)
 	{
-		send_reqs[i].exp = -1;
-		send_reqs[i].process_ID = -1;
+		send_reqs[i].exp = 0;
+		send_reqs[i].process_slot = 0;
 		send_reqs[i].envelope = 0;
 	}
 	
@@ -128,6 +131,11 @@ VOID sys_init()
 	outputBuffer.front = 0;
 	outputBuffer.back = 0;
 	outputBuffer.num_slots = 2000;
+	
+	// Clock and display variable initialization
+	UINT32 g_clock_counter = 0;
+	UINT8  g_clock_enabled = 0;
+	UINT8  g_timer_is_scheduled = 0;
 	
 	// Initialize free memory blocks
 	for (i = 0; i < NUM_MEM_BLKS; i++)
@@ -487,6 +495,7 @@ VOID receive_message_trap_handler()
 	if(message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg) == -1){
 		g_current_process->m_state = 3;
 		release_processor();
+		rtx_dbug_outs("Checking mailbox...\r\n");
 		message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg);
 	}
 
@@ -947,8 +956,7 @@ VOID release_memory_block_trap_handler()
 	VOID * memory_block;
 	asm("move.l %d2, g_asmBridge");
 	memory_block = (VOID *)g_asmBridge;
-
-
+	
 	struct s_pcb * previously_blocking_proc;
     UINT8 i;
 	UINT8 j;
@@ -987,10 +995,123 @@ VOID release_memory_block_trap_handler()
 	asm("move.l g_asmBridge, %d2");
 }
 
+VOID delayed_send_trap_handler()
+{
+	int process_ID;
+	VOID * messageEnvelope;
+	int delay;
+	
+	asm("move.l %d2, g_asmBridge");
+	process_ID = g_asmBridge;
+	
+	asm("move.l %d3, g_asmBridge");
+	messageEnvelope = (VOID *)g_asmBridge;
+	
+	asm("move.l %d4, g_asmBridge");
+	delay = g_asmBridge;
+	
+	// Try to find an available delayed send slot
+	UINT8 j;
+	for(j = 0; j < 10; j++)
+	{
+		if (send_reqs[j].envelope == 0)
+		{
+			break;
+		}
+	}
+	
+    // Check that the delay time is positive, and that we found a delayed send slot
+	if(delay < 0 || j == 10)
+	{
+		g_asmBridge = -1;
+	}
+	else
+	{
+		rtx_dbug_outs("Delay for this message will be: ");
+		printHexAddress(delay);
+		rtx_dbug_outs("\r\n");
+		
+		struct s_message * new_message = messageEnvelope;
+		new_message->sender_id = g_current_process->m_process_ID;
+		new_message->dest_id = process_ID;
+		
+		UINT8 i;
+		for(i = 0; i < NUM_PROCESSES; i++)
+		{
+			if(g_proc_table[i].m_process_ID == process_ID)
+			{	
+				send_reqs[i].envelope = (VOID *)new_message;
+				send_reqs[i].exp = delay;
+				send_reqs[i].process_slot = (int)i;
+				break;
+			}
+		}
+		
+		if (i == NUM_PROCESSES)
+		{
+			g_asmBridge = -1;
+		}
+		else
+		{
+			g_asmBridge = 0;
+		}
+	}
+	
+	asm("move.l g_asmBridge, %d1");
+}
+
 int delayed_send(int process_ID, void * MessageEnvelope, int delay)
 {
-    rtx_dbug_outs((CHAR *)"rtx: delayed_send \r\n");
-    return 0;
+    int returnVal = 0;
+	
+	//Backup address and data registers
+	asm("move.l %d0, -(%a7)");
+	asm("move.l %d1, -(%a7)");
+	asm("move.l %d2, -(%a7)");
+	asm("move.l %d3, -(%a7)");
+	asm("move.l %d4, -(%a7)");
+	asm("move.l %d5, -(%a7)");
+	asm("move.l %d6, -(%a7)");
+	asm("move.l %d7, -(%a7)");
+	asm("move.l %a0, -(%a7)");
+	asm("move.l %a1, -(%a7)");
+	asm("move.l %a2, -(%a7)");
+	asm("move.l %a3, -(%a7)");
+	asm("move.l %a4, -(%a7)");
+	asm("move.l %a5, -(%a7)");
+	asm("move.l %a6, -(%a7)");
+	
+	//Place process_ID, messageEnvelope, and delay into d2, d3, and d4 respectively to pass to send_message_trap_handler
+	g_asmBridge = process_ID;
+	asm("move.l g_asmBridge, %d2");
+	g_asmBridge = (UINT32 *)MessageEnvelope;
+	asm("move.l g_asmBridge, %d3");
+	g_asmBridge = delay;
+	asm("move.l g_asmBridge, %d4");
+	
+	asm("TRAP #7");
+	
+	//Take return value from d1
+	asm("move.l %d1, g_asmBridge");
+	returnVal = g_asmBridge;
+	
+	asm("move.l (%a7)+, %a6");
+	asm("move.l (%a7)+, %a5");
+	asm("move.l (%a7)+, %a4");
+	asm("move.l (%a7)+, %a3");
+	asm("move.l (%a7)+, %a2");
+	asm("move.l (%a7)+, %a1");
+	asm("move.l (%a7)+, %a0");
+	asm("move.l (%a7)+, %d7");
+	asm("move.l (%a7)+, %d6");
+	asm("move.l (%a7)+, %d5");
+	asm("move.l (%a7)+, %d4");
+	asm("move.l (%a7)+, %d3");
+	asm("move.l (%a7)+, %d2");
+	asm("move.l (%a7)+, %d1");
+	asm("move.l (%a7)+, %d0");
+	
+	return returnVal;
 }
 
 SINT8 message_pop(struct s_message_queue * queue, struct s_message_queue_item slots[], struct s_message ** catcher)

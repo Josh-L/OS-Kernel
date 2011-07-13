@@ -13,6 +13,8 @@
 #define NUM_PROCESSES 11
 #define NUM_TEST_PROCS 6
 
+#define NUM_DELAYED_SLOTS 10
+
 #define NULL_PROC_ID	0
 #define KDC_PROC_ID		7
 #define CRT_PROC_ID		8
@@ -27,7 +29,7 @@ extern BYTE __end;
 struct delayed_send_request
 {
 	int exp;      //Counter tracking whether the request has expired yet
-	int process_ID; //ID of process to send message to
+	int process_slot; //ID of process to send message to
 	VOID * envelope; //Pointer to message envelope
 };
 

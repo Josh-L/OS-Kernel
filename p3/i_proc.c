@@ -1,34 +1,40 @@
 #include "system.h"
 #include "Hex_to_ASCII.h"
 
+// Variables used in system.c, needed for reference by i_proc.c
 extern struct s_pcb 			g_proc_table[NUM_PROCESSES];
 extern struct s_pcb_queue		g_iProc_queue;
 extern struct s_pcb_queue_item 	g_iProc_queue_slots[10];
 extern struct s_pcb				*g_current_process;
+extern struct s_pcb_queue		g_priority_queues[NUM_PRIORITIES];
+extern struct s_pcb_queue_item 	g_queue_slots[NUM_PROCESSES]; // Have an array of ready queue slots
 
-CHAR charIn = 0;
-CHAR charOut = 0;
-
-extern struct delayed_send_request send_reqs[10];
-extern UINT8 g_hours;
-extern UINT8 g_minutes;
-extern UINT8 g_seconds;
-UINT32 g_counter = 0;
-UINT8  g_wall_clock_enabled = 0;
-UINT32 ticks_since_last_run = 0;
-UINT8  timer_is_scheduled = 0;
-BYTE rw;
-
+// Variables for i_proc.s that we delcared in system.c so they could be initialized in sys_init
+extern struct delayed_send_request send_reqs[NUM_DELAYED_SLOTS];
 extern struct s_char_queue				outputBuffer;
 extern struct s_char_queue_item			outputBufferSlots[2000];
+extern UINT32 g_clock_counter;
+extern UINT8  g_clock_enabled;
+extern UINT8  g_timer_is_scheduled;
+
+BYTE rw;
+CHAR charIn;
+CHAR charOut;
+
+UINT8 g_hours;
+UINT8 g_minutes;
+UINT8 g_seconds;
 
 void uart()
 {
-	struct s_message * tmp = 0;
+	charIn = 0;
+	charOut = 0;
 	
 	// Input buffer that holds the command to be sent to the keyboard decoder
 	char inputBuffer[100];
 	UINT8 inputBufferIndex = 0;
+	
+	struct s_message * tmp = 0;
 	
     while(1)
     {
@@ -36,15 +42,82 @@ void uart()
 		if((rw & 1) && (inputBufferIndex < 100))
 		{
 #ifdef _DEBUG_HOTKEYS
-			//UINT8 i;
-			struct s_message * output;
-			if(charIn == '~')
+			if(charIn == '-')
 			{
-				// Display processes currently on the ready queues and their priority
+				rtx_dbug_outs("Current clock status: ");
+				printHexAddress(g_clock_enabled);
+				rtx_dbug_outs("\r\n");
+			}
+			else if(charIn == '_')
+			{
+				if(g_clock_enabled == 0)
+				{
+					g_clock_enabled = 1;
+					rtx_dbug_outs("Turning clock OFF\r\n");
+				}
+				else
+				{
+					g_clock_enabled = 0;
+					rtx_dbug_outs("Turning clock ON\r\n");
+				}
+			}
+			else if(charIn == '+')
+			{
+				rtx_dbug_outs("Seconds: ");
+				printHexAddress(g_seconds);
+				rtx_dbug_outs("\r\n");
+				rtx_dbug_outs("Minutes: ");
+				printHexAddress(g_minutes);
+				rtx_dbug_outs("\r\n");
+				rtx_dbug_outs("Hours: ");
+				printHexAddress(g_hours);
+				rtx_dbug_outs("\r\n");
+			}
+			else if(charIn == '=')
+			{
+				rtx_dbug_outs("Checking for delayed messsages...\r\n");
+				UINT8 i;
+				for(i = 0; i < NUM_DELAYED_SLOTS; i++)
+				{
+					if (send_reqs[i].envelope != 0)
+					{
+						rtx_dbug_outs("Found one, time left: ");
+						printHexAddress(send_reqs[i].exp);
+						rtx_dbug_outs("\r\nTaking away time...\r\n");
+						send_reqs[i].exp -= 5;
+						
+						if(send_reqs[i].exp <= 0)
+						{
+							rtx_dbug_outs("Successfully ready to send to slot: ");
+							printHexAddress(send_reqs[i].process_slot);
+							rtx_dbug_outs("\r\n");
+							// Send the message
+							message_push(&g_proc_table[send_reqs[i].process_slot].msg_queue, g_proc_table[send_reqs[i].process_slot].msg_queue_slots, (struct s_message *)send_reqs[i].exp);
+							
+							// If receiving process is currently blocking on message from sender, unblock and push to ready queue
+							if(g_proc_table[i].m_state == 3)
+							{
+								g_proc_table[i].m_state = 1;
+								push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
+							}
+							
+							rtx_dbug_outs("Freeing up space.\r\n");
+							// Free up the delayed send space
+							send_reqs[i].envelope = 0;
+							
+							rtx_dbug_outs("Done.\r\n");
+						}
+					}
+				}
+			}
+			else if(charIn == '~')
+			{
+				/*// Display processes currently on the ready queues and their priority
+				//struct s_message * output;
 				output = (struct s_message *)request_memory_block();
 				output->type = 3;
 				output->msg_text = "Processes currently in ready queues:\n\r";
-				send_message(8, (VOID *)output);
+				send_message(8, (VOID *)output);*/
 				
 				/*
 				for(i = 0; i < NUM_PROCESSES; i++)
@@ -84,7 +157,7 @@ void uart()
 			}
 			else if(charIn == '\t')
 			{
-				// Invoke an error LOL
+				// Invoke an error
 				asm("rte");
 			}
 			else
@@ -144,6 +217,15 @@ void uart()
 
 void timer()
 {
+	g_hours = 0;
+	g_minutes = 0;
+	g_seconds = 0;
+	
+	// This is to hold "left over" milliseconds for the clock
+	UINT32 ticks_since_last_run = 0;
+	// This is to store the g_clock_counter value so that it can be instantly reset and not change during this process' execution
+	UINT32 temp_counter = 0;
+	
 	UINT8 i = 0;
     UINT8 tmp = 0;
     struct s_message * msg = 0;
@@ -151,25 +233,46 @@ void timer()
 
 	while(1)
 	{
+		temp_counter = g_clock_counter;
+		g_clock_counter = 0;
         //Update pending delay request message expiration counters
-		for(i = 0; i < 10; i++)
+		for(i = 0; i < NUM_DELAYED_SLOTS; i++)
 		{
-            send_reqs[i].exp -= ticks_since_last_run;
-            
-			if(send_reqs[i].exp <= 0)
+            if (send_reqs[i].exp != 0)
 			{
-				send_message(send_reqs[i].process_ID, send_reqs[i].envelope);
+				send_reqs[i].exp -= temp_counter;
+				
+				if(send_reqs[i].exp <= 0)
+				{
+					// Send the message
+					message_push(&g_proc_table[send_reqs[i].process_slot].msg_queue, g_proc_table[send_reqs[i].process_slot].msg_queue_slots, (struct s_message *)send_reqs[i].exp);
+				
+					// If receiving process is currently blocking on message from sender, unblock and push to ready queue
+					if(g_proc_table[i].m_state == 3)
+					{
+						g_proc_table[i].m_state = 1;
+						push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
+						if(g_current_process->m_priority > g_proc_table[i].m_priority && g_current_process->i_process == 0){
+							release_processor();
+						}
+					
+					}
+					
+					// Free up the delayed send space
+					send_reqs[i].envelope = 0;
+				}
 			}
 		}
 		
         /*If wall clock is enabled, check if an update is necessary and perform all counter updates as necessary
         before sending output message to CRT for output.*/
-		if(g_wall_clock_enabled == 1)
+		ticks_since_last_run += temp_counter;
+		
+		if(g_clock_enabled == 1)
         {
-            g_counter++;
-            if(g_counter >= 1000)
+            if(ticks_since_last_run >= 1000)
             {
-                g_counter = 0;
+				ticks_since_last_run -= 1000;
                 g_seconds++;
                 if (g_seconds >= 60)
                 {
@@ -205,6 +308,7 @@ void timer()
                 }
             }
         }
+		g_timer_is_scheduled = 0;
 		release_processor();
 	}
 }
@@ -502,8 +606,8 @@ void kcd()
                                     g_hours = tmp_hours;
                                     g_minutes = tmp_minutes;
                                     g_seconds = tmp_seconds;
-                                    g_wall_clock_enabled = 1;
-                                    result = "k lol \n\r";
+                                    g_clock_enabled = 1;
+                                    result = "Clock set.\n\r";
                                 }
                                 else
                                 {
@@ -523,7 +627,7 @@ void kcd()
 						if(msg_body[3] == 0xd)
 						{
 							//Turn wall clock off
-                            g_wall_clock_enabled = 0;
+                            g_clock_enabled = 0;
 						}
 						else
 						{
@@ -700,18 +804,20 @@ void c_serial_handler()
 
 void c_timer_handler()
 {
+	
 	// Disable interrupts
 	asm("move.w #0x2700,%sr");
-	
+	/*
 	// Increment ticks_since_last_run (tracks how many times the ISR has run since the last time the process
     // actually ran) and schedule the i-process if it's not already currently scheduled.
+	
+	g_clock_counter++;
     
-	ticks_since_last_run++;
-    
-    if(timer_is_scheduled == 0)
+    if(g_timer_is_scheduled == 0)
     {
+		g_timer_is_scheduled = 1;
         push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[10]);
     }
-	
+	*/
 	TIMER0_TER = 2;
 }

@@ -13,6 +13,23 @@
 
 void test1()
 {
+	struct s_message * tmp;
+    int msg_type = 3;
+	
+	tmp = (struct s_message *)g_test_fixture.request_memory_block();
+	tmp->type = msg_type;
+	tmp->msg_text = tmp + 8;
+	rtx_dbug_outs("Message starts at: ");
+	printHexAddress(tmp);
+	rtx_dbug_outs("\r\nText starts at: ");
+	printHexAddress(tmp->msg_text);
+	rtx_dbug_outs("\r\n");
+	
+	*(tmp->msg_text) = "FUCK";
+	g_test_fixture.delayed_send(2, (VOID *)tmp, 2);
+	
+	
+	
     while (1) 
     {
 		//rtx_dbug_out_char('1');
@@ -23,18 +40,18 @@ void test1()
 
 void test2()
 {
-    //struct s_message * tmp;
-    //int msg_type = 3;
-    //char * msg_text = "%WS20:45:10\r";
-    while (1) 
+	int * i;
+    while (1)
     {
-		//rtx_dbug_out_char('2');
+		g_test_fixture.receive_message(&i);
+		rtx_dbug_outs("Message recieved, sender: ");
+		printHexAddress(*i);
+		rtx_dbug_outs("\r\n");
+	
+		rtx_dbug_out_char('2');
 		//rtx_dbug_outs((CHAR *)"\r\n");
-		/*tmp = (struct s_message *)g_test_fixture.request_memory_block();
-		tmp->type = msg_type;
-		tmp->msg_text = msg_text;
-		g_test_fixture.send_message(7, (VOID *)tmp);*/
 		g_test_fixture.release_processor();
+		
 	}	
  }
 
