@@ -8,7 +8,7 @@
 #define NUM_PRIORITIES		5
 
 #define MEM_BLK_SIZE 2048
-#define NUM_MEM_BLKS 32
+#define NUM_MEM_BLKS 64
 
 #define NUM_PROCESSES 11
 #define NUM_TEST_PROCS 6

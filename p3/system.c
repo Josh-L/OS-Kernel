@@ -19,6 +19,8 @@ struct s_pcb_queue_item 	g_mem_blocking_queue_slots[NUM_PROCESSES];
 
 UINT32						*g_kernelStack = 0; // Pointer to kernel stack
 UINT32						g_asmBridge = 0;
+UINT32						g_asmBridge2 = 0;
+
 
 extern struct s_pcb 		g_proc_table[NUM_PROCESSES];
 extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory region
@@ -450,8 +452,9 @@ VOID * receive_message(int * sender_ID)
 	asm("TRAP #6");
 	
 	//Take return value from d1
-	asm("move.l %d1, g_asmBridge");
-	returnVal = g_asmBridge;
+	asm("move.l %d1, g_asmBridge2");
+	
+	returnVal = g_asmBridge2;
 	
 	asm("move.l (%a7)+, %a6");
 	asm("move.l (%a7)+, %a5");
@@ -491,16 +494,32 @@ VOID receive_message_trap_handler()
 	
 	struct s_message *  msg;
 	
-	if(message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg) == -1){
-		g_current_process->m_state = 3;
-		release_processor();
-		message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg);
+	// If there isn't a message waiting
+	if(message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg) == -1)
+	{
+		// If it's a normal process, then block on receive
+		if(g_current_process->i_process == 0)
+		{
+			g_current_process->m_state = 3;
+			release_processor();
+			message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg);
+		}
+		//If it's an i-process, then don't block, insert NULL values and continue
+		else
+		{
+			msg = 0;
+			*sender_ID = 0;
+		}
+		
+	}
+	// If we have a message, then receive it
+	else
+	{
+		*sender_ID = msg->sender_id;
 	}
 	
-	*sender_ID = msg->sender_id;
-	
-	g_asmBridge = msg;
-	asm("move.l g_asmBridge, %d1");
+	g_asmBridge2 = msg;
+	asm("move.l g_asmBridge2, %d1");
 }
 
 SINT8 pop(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb ** catcher)

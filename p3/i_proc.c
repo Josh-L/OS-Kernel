@@ -25,161 +25,66 @@ UINT8 g_hours;
 UINT8 g_minutes;
 UINT8 g_seconds;
 
+void strCopy(CHAR * from, CHAR * to)
+{
+	UINT32 i;
+	
+	*to = *from;
+	while(*from != '\0')
+	{
+		from += 1;
+		to += 1;
+		*to = *from;
+	}
+}
+
 void uart()
 {
-	
-	UINT8 newLine = 0;
-	
-	// Input buffer that holds the command to be sent to the keyboard decoder
-	char inputBuffer[102];
-	UINT8 inputBufferIndex = 0;
+	charOut = 0;
 	
 	struct s_message * tmp = 0;
 	
     while(1)
     {
 		// If we are reading from the UART
-		if((rw & 1) && (inputBufferIndex < 100))
+		if(rw & 1)
 		{
-#ifdef _DEBUG_HOTKEYS
-			if(charIn == '-')
+			tmp = (struct s_message *)request_memory_block();
+			if(tmp != 0)
 			{
-				rtx_dbug_outs("Current clock status: ");
-				printHexAddress(g_clock_enabled);
-				rtx_dbug_outs("\r\n");
+				tmp->type = 0;
+				tmp->msg_text = tmp + 1;
+				tmp->msg_text[0] = charIn;
+				tmp->msg_text[1] = '\0';
+				send_message(7, (VOID *)tmp);
 			}
-			else if(charIn == '_')
-			{
-				if(g_clock_enabled == 0)
-				{
-					g_clock_enabled = 1;
-					rtx_dbug_outs("Clock turning ON\r\n");
-				}
-				else
-				{
-					g_clock_enabled = 0;
-					rtx_dbug_outs("Clock turning OFF\r\n");
-				}
-			}
-			else if(charIn == '=')
-			{
-				if(g_clock_enabled == 0)
-				{
-					rtx_dbug_outs("Clock OFF\r\n");
-				}
-				else
-				{
-					rtx_dbug_outs("Clock ON\r\n");
-				}
-				rtx_dbug_outs("Seconds: ");
-				printHexAddress(g_seconds);
-				rtx_dbug_outs("\r\n");
-				rtx_dbug_outs("Minutes: ");
-				printHexAddress(g_minutes);
-				rtx_dbug_outs("\r\n");
-				rtx_dbug_outs("Hours: ");
-				printHexAddress(g_hours);
-				rtx_dbug_outs("\r\n");
-				
-			}
-			else if(charIn == '~')
-			{
-				/*// Display processes currently on the ready queues and their priority
-				//struct s_message * output;
-				output = (struct s_message *)request_memory_block();
-				output->type = 3;
-				output->msg_text = "Processes currently in ready queues:\n\r";
-				send_message(8, (VOID *)output);*/
-				
-				/*
-				for(i = 0; i < NUM_PROCESSES; i++)
-				{
-					if(g_proc_table[i].m_state == 3)
-					{
-						// Do output
-					}
-				}
-				*/
-			}
-			else if(charIn == '`')
-			{
-				// Display processes currently on the blocked on memory queue and their priorities
-				/*
-				for(i = 0; i < NUM_PROCESSES; i++)
-				{
-					if(g_proc_table[i].m_state == 3)
-					{
-						// Do output
-					}
-				}
-				*/
-			}
-			else if(charIn == '!')
-			{
-				// Display processes currently on the blocking on receive and their priorities
-				/*
-				for(i = 0; i < NUM_PROCESSES; i++)
-				{
-					if(g_proc_table[i].m_state == 3)
-					{
-						// Do output
-					}
-				}
-				*/
-			}
-			else if(charIn == '\t')
-			{
-				// Invoke an error
-				asm("rte");
-			}
-			else
-			{
-#endif
-				// Add the character to the input buffer which will be sent to the keybaord decoder
-				inputBuffer[inputBufferIndex] = charIn;
-				
-				// Put the character in the output buffer
-				buffer_push(&outputBuffer, outputBufferSlots, inputBuffer[inputBufferIndex]);
-				
-				inputBufferIndex++;
-				
-				// If the user presses enter to finish the command
-				if(inputBuffer[inputBufferIndex - 1] == '\r')
-				{
-					inputBuffer[inputBufferIndex] = '\n';
-					inputBuffer[inputBufferIndex + 1] = '\0';
-					
-					// Reset input buffer
-					inputBufferIndex = 0;
-					
-					// Send the input buffer which holds the user's command in a message to the keyboard decoder
-					tmp = 0;
-					tmp = (struct s_message *)request_memory_block();
-					if(tmp != 0)
-					{
-						tmp->type = 0;
-						tmp->msg_text = &inputBuffer;
-						send_message(7, (VOID *)tmp);
-					}
-					
-					// Put a newline character in the output queue
-					buffer_push(&outputBuffer, outputBufferSlots, '\n');
-				}
-#ifdef _DEBUG_HOTKEYS
-			}
-#endif
 			// Enable transmit interrupts so that the user's input is echoed out
 			SERIAL1_IMR = 0x03;
 		}
 		else if (rw & 4)
 		{
+			// Check for messages from CRT that want to be output
+			int sender;
+			tmp = (struct s_message *)receive_message(&sender);
+			// If we actually get a message
+			if(tmp != 0 && sender == 8)
+			{
+				// Add message text to the output buffer
+				while(tmp->msg_text[0] != 0)
+				{
+					buffer_push(&outputBuffer, outputBufferSlots, tmp->msg_text[0]);
+					tmp->msg_text += 1;
+				}
+				// Release the memory block this message holds
+				release_memory_block((VOID *)tmp);
+			}
 			// Write the next character waiting in the output buffer
 			charOut = buffer_pop(&outputBuffer, outputBufferSlots);
 			
 			// If the buffer is not empty
 			if(charOut != 0)
 			{
-				// Enable transmit interrupts so that the user's input is echoed out
+				// Enable transmit interrupts so that the rest of the the output buffer is printed
 				SERIAL1_IMR = 0x03;
 			}
 		}
@@ -206,7 +111,6 @@ void timer()
 
 	while(1)
 	{
-		//rtx_dbug_out_char('#');
 		temp_counter = g_clock_counter;
 		g_clock_counter = 0;
         //Update pending delay request message expiration counters
@@ -226,9 +130,6 @@ void timer()
 					{
 						g_proc_table[i].m_state = 1;
 						push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
-						/*if(g_current_process->m_priority > g_proc_table[i].m_priority && g_current_process->i_process == 0){
-							release_processor();
-						}*/
 					}
 					
 					
@@ -283,465 +184,432 @@ void timer()
                     msg->type = 3;
                     msg->msg_text = msg_text;
                     send_message(8, (VOID *)msg);
+
                 }
             }
         }
-	
 		g_timer_is_scheduled = 0;
 		release_processor();
 	}
 }
 
-/*********************************************************************************************************
-Call receive_message. Once a message is received, check if it is one of 2 allowable types (types 3 and 4).
-If it is not one of these types, do nothing. If it is a valid message type, perform the necessary decoding
-by reading the contents of the message body and acting accordingly (ie. if command is "%C..." call 
-set_process_priority, and if command is "%W..." call the timer i-process).
-*********************************************************************************************************/
 void kcd()
 {
-    int                sender_ID;
-    int                to_ID;            //process ID of process to send a message to in the case of %C command
-    int                new_priority;     //new priority to use in set_process_priority in the case of %C command
-    struct s_message * msg;  
+	char c;
+	struct s_message * input;
 	struct s_message * output;
-    char             * msg_body;
-    char             * result;
-	int				   messageType = 0;
-    UINT8              tmp_hours   = 0;
-    UINT8              tmp_minutes = 0;
-    UINT8              tmp_seconds = 0;
-    UINT8              valid       = 0;
+	int * sender_ID;
+	char inputBuffer[100];
+	UINT32 inputBufferIndex = 0;
 	
-    while(1)
-    {
-		msg = (struct s_message *)receive_message(&sender_ID);
-		msg_body = msg->msg_text;
-		// Ensure message type is correct
-		if(msg->type == messageType)
+	while(1)
+	{
+		while(1)
 		{
-			//Before you can decode the command, you must first create the ANTLR O_O RECURSIVE DESCENT AHOY!
-			if(msg_body[0] == '%')
+			// Receive character in message
+			input = (struct s_message *)receive_message(&sender_ID);
+			
+			// Save character
+			c = input->msg_text[0];
+			
+			// Release memory block
+			release_memory_block((VOID *)input);
+			
+			// If this command is a debug character
+#ifdef _DEBUG_HOTKEYS
+			if(c == '-')
 			{
-				if(msg_body[1] == 'W')
+				rtx_dbug_outs("Current clock status: ");
+				printHexAddress(g_clock_enabled);
+				rtx_dbug_outs("\r\n");
+			}
+			else if(c == '_')
+			{
+				if(g_clock_enabled == 0)
 				{
-					if(msg_body[2] == 'S')
+					g_clock_enabled = 1;
+					rtx_dbug_outs("Clock turning ON\r\n");
+				}
+				else
+				{
+					g_clock_enabled = 0;
+					rtx_dbug_outs("Clock turning OFF\r\n");
+				}
+			}
+			else if(c == '=')
+			{
+				if(g_clock_enabled == 0)
+				{
+					rtx_dbug_outs("Clock OFF\r\n");
+				}
+				else
+				{
+					rtx_dbug_outs("Clock ON\r\n");
+				}
+				rtx_dbug_outs("Seconds: ");
+				printHexAddress(g_seconds);
+				rtx_dbug_outs("\r\n");
+				rtx_dbug_outs("Minutes: ");
+				printHexAddress(g_minutes);
+				rtx_dbug_outs("\r\n");
+				rtx_dbug_outs("Hours: ");
+				printHexAddress(g_hours);
+				rtx_dbug_outs("\r\n");
+			}
+			else if(c == '~')
+			{
+				// Display processes currently on the ready queues and their priority
+				output = (struct s_message *)request_memory_block();
+				if(output != 0)
+				{
+					output->type = 3;
+					output->msg_text = "Processes currently in ready queues:\n\r";
+					send_message(8, (VOID *)output);
+				}
+				
+				printProcessesByState(1);
+			}
+			else if(c == '|')
+			{
+				// Display processes currently on the blocked on memory queue and their priorities
+				output = (struct s_message *)request_memory_block();
+				if(output != 0)
+				{
+					output->type = 3;
+					output->msg_text = "Processes currently blocking on memory:\n\r";
+					send_message(8, (VOID *)output);
+				}
+				
+				printProcessesByState(0);
+			}
+			else if(c == '!')
+			{
+				// Display processes currently on the blocking on receive and their priorities
+				output = (struct s_message *)request_memory_block();
+				if(output != 0)
+				{
+					output->type = 3;
+					output->msg_text = "Processes currently blocking on receive:\n\r";
+					send_message(8, (VOID *)output);
+				}
+				
+				printProcessesByState(3);
+			}
+			else if(c == '\t')
+			{
+				// Invoke an error
+				asm("rte");
+			}
+			else
+			{
+#endif
+				// Else echo character to user
+				output = (struct s_message *)request_memory_block();
+				output->type = 3;
+				output->msg_text = output + 1;
+				output->msg_text[0] = c;
+				output->msg_text[1] = '\0';
+				send_message(8, (VOID *)output);
+				
+				if(inputBufferIndex < 100)
+				{
+					inputBuffer[inputBufferIndex] = c;
+					inputBufferIndex ++;
+				}
+				
+				// If this the end of the command
+				if(c == '\r')
+				{
+					// Send a newline character to the user
+					output = (struct s_message *)request_memory_block();
+					output->type = 3;
+					output->msg_text = output + 1;
+					output->msg_text[0] = '\n';
+					output->msg_text[1] = '\0';
+					send_message(8, (VOID *)output);
+					
+					inputBuffer[inputBufferIndex-1] = '\0';
+					inputBufferIndex = 0;
+					
+					// Start parsing
+					break;
+				}
+				else if(c == 0x08)
+				{
+					if(inputBufferIndex > 1 && inputBufferIndex != 99)
 					{
-						switch(msg_body[3])
-						{
-							case '0':
-                                valid = 1;
-                                break;
-							case '1':
-                                valid = 1;
-                                tmp_hours = 10;
-                                switch(msg_body[4])
-                                {
-                                    case '0':
-                                        valid = 1;
-                                        break;
-                                    case '1':
-                                        valid = 1;
-                                        tmp_hours += 1;
-                                        break;
-                                    case '2':
-                                        valid = 1;
-                                        tmp_hours += 2;
-                                        break;
-                                    case '3':
-                                        valid = 1;
-                                        tmp_hours += 3;
-                                        break;
-                                    case '4':
-                                        valid = 1;
-                                        tmp_hours += 4;
-                                        break;
-                                    case '5':
-                                        valid = 1;
-                                        tmp_hours += 5;
-                                        break;
-                                    case '6':
-                                        valid = 1;
-                                        tmp_hours += 6;
-                                        break;
-                                    case '7':
-                                        valid = 1;
-                                        tmp_hours += 7;
-                                        break;
-                                    case '8':
-                                        valid = 1;
-                                        tmp_hours += 8;
-                                        break;
-                                    case '9':
-                                        valid = 1;
-                                        tmp_hours += 9;
-                                        break;
-                                    default:
-                                        result = "Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r";
-                                        valid = 0;
-                                        //rtx_dbug_outs((CHAR *)"Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r");
-                                        break;
-                                }
-								break;
-							case '2':
-                                valid = 1;
-                                tmp_hours = 20;
-                                switch(msg_body[4])
-                                {
-                                    case '0':
-                                        valid = 1;
-                                        break;
-                                    case '1':   
-                                        valid = 1;
-                                        tmp_hours += 1;
-                                        break;
-                                    case '2':   
-                                        valid = 1;
-                                        tmp_hours += 2;
-                                        break;
-                                    case '3':
-                                        valid = 1;
-                                        tmp_hours += 3;
-                                        break;
-                                    default:
-                                        result = "Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r";
-                                        valid = 0;
-                                        //rtx_dbug_outs((CHAR *)"Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r");
-                                        break;
-                                }
-								break;
-							default:
-								result = "Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r";
-                                valid = 0;
-                                //rtx_dbug_outs((CHAR *)"Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r");
-								break;
-						}
-						if(msg_body[5] == 0x3a)
-						{
-							switch(msg_body[6])
-							{
-								case '0':
-                                    valid = 1;
-                                    break;
-								case '1':
-                                    valid = 1;
-                                    tmp_minutes = 10;
-                                    break;
-								case '2':
-                                    valid = 1;
-                                    tmp_minutes = 20;
-                                    break;
-								case '3':
-                                    valid = 1;
-                                    tmp_minutes = 30;
-                                    break;
-								case '4':
-                                    valid = 1;
-                                    tmp_minutes = 40;
-                                    break;
-								case '5':
-                                    valid = 1;
-                                    tmp_minutes = 50;
-                                    break;
-								default:
-                                    result = "Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r";
-                                    valid = 0;
-                                    //rtx_dbug_outs((CHAR *)"Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r");
-									break;
-							}
-                            switch(msg_body[7])
-                            {
-                                case '0':
-                                    valid = 1;
-                                    break;
-                                case '1':
-                                    valid = 1;
-                                    tmp_minutes += 1;
-                                    break;
-                                case '2':
-                                    valid = 1;
-                                    tmp_minutes += 2;
-                                    break;
-                                case '3':
-                                    valid = 1;
-                                    tmp_minutes += 3;
-                                    break;
-                                case '4':
-                                    valid = 1;
-                                    tmp_minutes += 4;
-                                    break;
-                                case '5':
-                                    valid = 1;
-                                    tmp_minutes += 5;
-                                    break;
-                                case '6':
-                                    valid = 1;
-                                    tmp_minutes += 6;
-                                    break;
-                                case '7':
-                                    valid = 1;
-                                    tmp_minutes += 7;
-                                    break;
-                                case '8':
-                                    valid = 1;
-                                    tmp_minutes += 8;
-                                    break;
-                                case '9':
-                                    valid = 1;
-                                    tmp_minutes += 9;
-                                    break;
-                                default:
-                                    result = "Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r";
-                                    valid = 0;
-                                    //rtx_dbug_outs((CHAR *)"Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r");
-                                    break;
-                            }
-                            if(msg_body[8] == 0x3a)
-                            {
-                                switch(msg_body[9])
-                                {
-                                    case '0':
-                                        valid = 1;
-                                        break;
-                                    case '1':
-                                        valid = 1;
-                                        tmp_seconds = 10;
-                                        break;
-                                    case '2':
-                                        valid = 1;
-                                        tmp_seconds = 20;
-                                        break;
-                                    case '3':
-                                        valid = 1;
-                                        tmp_seconds = 30;
-                                        break;
-                                    case '4':
-                                        valid = 1;
-                                        tmp_seconds = 40;
-                                        break;
-                                    case '5':
-                                        valid = 1;
-                                        tmp_seconds = 50;
-                                        break;
-                                    default:
-                                        result = "Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r";
-                                        valid = 0;
-                                        //rtx_dbug_outs((CHAR *)"Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r");
-                                        break;
-                                }
-                                 switch(msg_body[10])
-                                {
-                                    case '0':
-                                        valid = 1;
-                                        break;
-                                    case '1':
-                                        valid = 1;
-                                        tmp_seconds += 1; 
-                                        break;
-                                    case '2':
-                                        valid = 1;
-                                        tmp_seconds += 2; 
-                                        break;
-                                    case '3':
-                                        valid = 1;
-                                        tmp_seconds += 3; 
-                                        break;
-                                    case '4':
-                                        valid = 1;
-                                        tmp_seconds += 4; 
-                                        break;
-                                    case '5':
-                                        valid = 1;
-                                        tmp_seconds += 5; 
-                                        break;
-                                    case '6':
-                                        valid = 1;
-                                        tmp_seconds += 6; 
-                                        break;
-                                    case '7':
-                                        valid = 1;
-                                        tmp_seconds += 7; 
-                                        break;
-                                    case '8':
-                                        valid = 1;
-                                        tmp_seconds += 8; 
-                                        break;
-                                    case '9':
-                                        valid = 1;
-                                        tmp_seconds += 9; 
-                                        break;
-                                    default:
-                                        result = "Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r";
-                                        valid = 0;
-                                        //rtx_dbug_outs((CHAR *)"Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r");
-                                        break;
-                                }
-                                if((msg_body[11] == 0xd) && (valid == 1))
-                                {
-                                    //Update clock hours, minutes, and seconds variables then enable wall clock
-                                    result = "Clock set.\n\r";
-									g_hours = tmp_hours;
-                                    g_minutes = tmp_minutes;
-                                    g_seconds = tmp_seconds;
-                                    g_clock_enabled = 1;
-                                }
-                                else
-                                {
-                                    result = "Not a recognized command. Try again.\n\r";
-                                    //rtx_dbug_outs((CHAR *)"Not a recognized command. Try again.\n\r");
-                                }
-                            }
-                            else
-                            {
-                                result = "Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r";
-                                //rtx_dbug_outs((CHAR *)"Not a valid time format. Try HH:MM:SS where 00<=HH<=23, 00<=MM<=59, 00<=SS<=59.\n\r");
-                            }
-						}
-					}
-					else if(msg_body[2] == 'T')
-					{
-						if(msg_body[3] == 0xd)
-						{
-							//Turn wall clock off
-                            g_clock_enabled = 0;
-							result = "Clock turned off.\n\r";
-						}
-						else
-						{
-                            result = "Not a recognized command. Try again.\n\r";
-							//rtx_dbug_outs((CHAR *)"Not a recognized command. Try again.\n\r");
-						}
+						inputBufferIndex -= 2;
 					}
 					else
 					{
-                        result = "Not a recognized command. Try again.\n\r";
-						//rtx_dbug_outs((CHAR *)"Not a recognized command. Try again.\n\r");
+						inputBufferIndex -= 1;
 					}
 				}
-				else if(msg_body[1] == 'C')
+#ifdef _DEBUG_HOTKEYS
+			}
+#endif
+		}
+		
+		// Parsing the command
+		inputBufferIndex = 0;
+		
+		char * result;
+		
+		if(inputBuffer[inputBufferIndex] == '%')
+		{
+			inputBufferIndex++;
+			if(inputBuffer[inputBufferIndex] == 'W')
+			{
+				inputBufferIndex++;
+				if(inputBuffer[inputBufferIndex] == 'T')
 				{
-					if(msg_body[2] == 0x20)
+					inputBufferIndex++;
+					if(inputBuffer[inputBufferIndex] == '\0')
 					{
-						switch(msg_body[3])
+						g_clock_enabled = 0;
+						result = "Turning off clock.\n\r";
+					}
+				}
+				else if(inputBuffer[inputBufferIndex] == 'S')
+				{
+					inputBufferIndex++;
+					if(inputBuffer[inputBufferIndex] == ' ')
+					{
+						inputBufferIndex++;
+						if(inputBuffer[inputBufferIndex] > 0x2F && inputBuffer[inputBufferIndex] < 0x33)
 						{
-							case '1':
-							case '2':
-							case '3':
-							case '4':
-							case '5':
-							case '6':
-								to_ID = (int)(msg_body[3] - 0x30);
-								if(msg_body[4] == 0x20)
+							int hours = (inputBuffer[inputBufferIndex] - 0x30)*10;
+							inputBufferIndex++;
+							if(inputBuffer[inputBufferIndex] > 0x2F && inputBuffer[inputBufferIndex] < 0x3A)
+							{
+								hours += (inputBuffer[inputBufferIndex] - 0x30);
+								if(hours < 24)
 								{
-									switch(msg_body[5])
+									inputBufferIndex++;
+									if(inputBuffer[inputBufferIndex] == 0x3A)
 									{
-										case '0':
-										case '1':
-										case '2':
-										case '3':
-											new_priority = (int)(msg_body[5] - 0x30);
-											if(msg_body[6] == 0xd)
+										inputBufferIndex++;
+										if(inputBuffer[inputBufferIndex] < 0x36 && inputBuffer[inputBufferIndex] > 0x2F)
+										{
+											int minutes = (inputBuffer[inputBufferIndex] - 0x30)*10;
+											inputBufferIndex++;
+											if(inputBuffer[inputBufferIndex] < 0x3A && inputBuffer[inputBufferIndex] > 0x2F)
 											{
-												result = "Changing priority of process x to priority y.\r\n";
-												result[29] = (char)(0x30 + to_ID);
-												result[43] = (char)(0x30 + new_priority);
-												set_process_priority(to_ID, new_priority);
+												minutes += (inputBuffer[inputBufferIndex] - 0x30);
+												inputBufferIndex++;
+												if(inputBuffer[inputBufferIndex] == 0x3A)
+												{
+													inputBufferIndex++;
+													if(inputBuffer[inputBufferIndex] < 0x36 && inputBuffer[inputBufferIndex] > 0x2F)
+													{
+														int seconds = (inputBuffer[inputBufferIndex] - 0x30)*10;
+														inputBufferIndex++;
+														if(inputBuffer[inputBufferIndex] < 0x3A && inputBuffer[inputBufferIndex] > 0x2F)
+														{
+															seconds += (inputBuffer[inputBufferIndex] - 0x30);
+															inputBufferIndex++;
+															if(inputBuffer[inputBufferIndex] == '\0')
+															{
+																g_clock_enabled = 1;
+																g_hours = hours;
+																g_minutes = minutes;
+																g_seconds = seconds;
+																result = "Turning clock on.\n\r";
+															}
+															else
+															{
+																result = "Time format incorrect. Format is HH:MM:SS.\n\r";
+															}
+														}
+														else
+														{
+															result = "Time format incorrect. Format is HH:MM:SS.\n\r";
+														}
+													}
+													else
+													{
+														result = "Time format incorrect. Format is HH:MM:SS.\n\r";
+													}
+												}
+												else
+												{
+													result = "Time format incorrect. Format is HH:MM:SS.\n\r";
+												}
 											}
 											else
 											{
-                                                result = "Not a recognized command. Try again.\n\r";
-												//rtx_dbug_outs((CHAR *)"Not a recognized command. Try again.\n\r");
+												result = "Time format incorrect. Format is HH:MM:SS.\n\r";
 											}
-											break;
-										default:
-                                            result = "Not a valid priority level. Try again. \n\r";
-											//rtx_dbug_outs((CHAR *)"Not a valid priority level. Try again.\n\r");
-											break;
+										}
+										else
+										{
+											result = "Time format incorrect. Format is HH:MM:SS.\n\r";
+										}
+									}
+									else
+									{
+										result = "Time format incorrect. Format is HH:MM:SS.\n\r";
 									}
 								}
 								else
 								{
-                                    result = "Not a recognized command. Try again.\n\r";
-									//rtx_dbug_outs((CHAR *)"Not a recognized command. Try again.\n\r");
+									result = "Time format incorrect. Format is HH:MM:SS.\n\r";
 								}
-								break;
-							default:
-                                result = "Not a valid process ID. Try again..\n\r";
-								//rtx_dbug_outs((CHAR *)"Not a valid process ID. Try again..\n\r");
-								break;
+							}
+							else
+							{
+								result = "Time format incorrect. Format is HH:MM:SS.\n\r";
+							}
+						}
+						else
+						{
+							result = "Time format incorrect. Format is HH:MM:SS.\n\r";
 						}
 					}
 					else
 					{
-                        result = "Not a recognized command. Try again.\n\r";
-						//rtx_dbug_outs((CHAR *)"Not a recognized command. Try again.\n\r");
+						result = "Invalid command.\n\r";
 					}
 				}
 				else
 				{
-                    result = "Not a recognized command. Try again.\n\r";
-					//rtx_dbug_outs((CHAR *)"Not a recognized command. Try again.\n\r");
+					result = "Invalid command.\n\r";
+				}
+			}
+			else if(inputBuffer[inputBufferIndex] == 'C')
+			{
+				inputBufferIndex++;
+				if(inputBuffer[inputBufferIndex] == ' ')
+				{
+					inputBufferIndex++;
+					if(inputBuffer[inputBufferIndex] < 0x37 && inputBuffer[inputBufferIndex] > 0x30)
+					{
+						int process_id = inputBuffer[inputBufferIndex];
+						inputBufferIndex++;
+						if(inputBuffer[inputBufferIndex] == ' ')
+						{
+							inputBufferIndex++;
+							if(inputBuffer[inputBufferIndex] < 0x35 && inputBuffer[inputBufferIndex] > 0x2F)
+							{
+								int priority = inputBuffer[inputBufferIndex];
+								inputBufferIndex++;
+								if(inputBuffer[inputBufferIndex] == '\0')
+								{
+									result = "Changed process ID x to priority level y.\n\r";
+									result[19] = (char)process_id;
+									result[39] = (char)priority;
+									process_id = process_id - 0x30;
+									priority = priority - 0x30;
+									set_process_priority(process_id, priority);
+								}
+								else
+								{
+									result = "Invalid command.\n\r";
+								}
+							}
+							else
+							{
+								result = "Invalid priority level.\n\r";
+							}
+						}
+						else
+						{
+							result = "Invalid command.\n\r";
+						}
+					}
+					else
+					{
+						result = "Invalid process ID.\n\r";
+					}
+				}
+				else
+				{
+					result = "Invalid command.\n\r";
 				}
 			}
 			else
 			{
-                result = "Not a recognized command. Try again.\n\r";
-				//rtx_dbug_outs((CHAR *)"Not a recognized command. Try again.\n\r");
+				result = "Invalid command.\n\r";
 			}
 		}
 		else
 		{
-            result = "Improper message type.\n\r";
-			//rtx_dbug_outs((CHAR *)"Improper message type.\n\r");
+			result = "Invalid command.\n\r";
 		}
-        
-        output = (struct s_message *)request_memory_block();
-        output->type = 3;
-        output->msg_text = result;
-        send_message(8, (VOID *)output);
-        
-		release_memory_block((VOID *)msg);
+		
+		inputBufferIndex = 0;
+		output = (struct s_message *)request_memory_block();
+		output->msg_text = result;
+		output->type = 3;
+		send_message(8, (VOID *)output);
+		
 		release_processor();
-    }
+	}
 }
 
-/*********************************************************************************************************
-Call receive_message. Once a message is received, check if it is the correct type (type 5). If it is not
-the right type, do nothing. If it is the correct message type, output the text contained in the 
-message body using the UART i-process. Finally, before returning, call release_memory_block to free the 
-memory used by the message.
-*********************************************************************************************************/
 void crt()
 {	
 	int					sender_ID;
     struct s_message	* msg;
+	struct s_message	* out;
 	char				c;
 	
     while(1)
     {
 		msg = (struct s_message *)receive_message(&sender_ID);
-		
+		// If we get the correct message type
         if(msg->type == 3)
         {
-            // Start pushing characters to the outputbuffer (up to 100 chracters, or until a null character is hit)
-			UINT32 i = 0;
-			for(i = 0; i < outputBuffer.num_slots; i++)
-			{
-				c = msg->msg_text[i];
-				if(c != '\0')
-				{
-					buffer_push(&outputBuffer, outputBufferSlots, c);
-				}
-				else
-				{
-					break;
-				}
-			}
+			// Send message to UART to output the text
+			out = (struct s_message *)request_memory_block();
+			out->type = 0;
+			out->msg_text = out + 1;
+			strCopy(msg->msg_text, out->msg_text);
+			send_message(9, (VOID *)out);
+			
 			// Enable transmit interrupts for the message to be displayed
 			SERIAL1_IMR = 0x03;
         }
 		release_memory_block((VOID *)msg);
     }
+}
+
+void printProcessesByState(UINT8 state)
+{
+	UINT8 i;
+	struct s_message * output;
+	UINT8 sent = 0;
+	CHAR * message = "Process ID: x --> Priority: y\n\r";
+	for(i = 0; i < NUM_PROCESSES; i++)
+	{
+		if(g_proc_table[i].m_state == state && g_proc_table[i].i_process == 0)
+		{
+			output = (struct s_message *)request_memory_block();
+			if(output != 0)
+			{
+				output->msg_text = output + 1;
+				output->type = 3;
+				strCopy(message, output->msg_text);
+				output->msg_text[12] = (char)(0x30 + g_proc_table[i].m_process_ID);
+				output->msg_text[28] = (char)(0x30 + g_proc_table[i].m_priority);
+				send_message(8, (VOID *)output);
+			}
+			sent = 1;
+		}
+	}
+	if(sent == 0)
+	{
+		output = (struct s_message *)request_memory_block();
+		if(output != 0)
+		{
+			output->msg_text = "(None)\n\r";
+			output->type = 3;
+			output->msg_text[12] = (char)(0x30 + g_proc_table[i].m_process_ID);
+			output->msg_text[28] = (char)(0x30 + g_proc_table[i].m_priority);
+			send_message(8, (VOID *)output);
+		}
+		
+	}
 }
 
 void c_serial_handler()
@@ -754,32 +622,25 @@ void c_serial_handler()
     
 	if(rw & 1)
 	{
+		// Read character from keyboard
 		charIn = SERIAL1_RD;
-
-		push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[9]);
-		if(g_current_process->i_process == 0)
-		{
-			release_processor();
-		}
 	}
 	else if(rw & 4)
 	{
 		// Output character, default is a null
 		SERIAL1_WD = charOut;
-		
 		// Stop transmit interrupts
 		SERIAL1_IMR = 0x02;
-		
-		// Schedule iProc to see if more characters should be output
-		push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[9]);
-		
-		// Only release if the process is not another i-process
-		if(g_current_process->i_process == 0)
-		{
-			release_processor();
-		}
 	}
-
+	
+	// Push the UART i-process into the process queue
+	push(&g_iProc_queue, g_iProc_queue_slots, &g_proc_table[9]);
+	
+	// Only release processor if the running process is not an i-process
+	if(g_current_process->i_process == 0)
+	{
+		release_processor();
+	}
 }
 
 void c_timer_handler()
@@ -792,7 +653,8 @@ void c_timer_handler()
     // actually ran) and schedule the i-process if it's not already currently scheduled.
 	
 	g_clock_counter++;
-
+	
+	
     if(g_timer_is_scheduled == 0)
     {
 		g_timer_is_scheduled = 1;
