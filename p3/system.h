@@ -8,7 +8,8 @@
 #define NUM_PRIORITIES		5
 
 #define MEM_BLK_SIZE 2048
-#define NUM_MEM_BLKS 64
+#define NUM_MEM_BLKS 32
+#define NUM_SYS_MEM_BLKS 10
 
 #define NUM_PROCESSES 11
 #define NUM_TEST_PROCS 6
@@ -21,7 +22,7 @@
 #define UART_IPROC_ID	9
 #define TIMER_IPROC_ID	10
 
-#define _DEBUG_HOTKEYS
+#define _DEBUG_HOTKEYS // Enable hotkeys
 
 extern BYTE __end;
 
@@ -77,6 +78,7 @@ struct s_pcb
 	struct	s_message_queue msg_queue;
 	struct	s_message_queue_item msg_queue_slots[NUM_PROCESSES];
 	UINT8	i_process; // 0 means is not, 1 means it is
+	UINT8	sys_process; // 0 means is not, 1 means it is
 };
 
 struct s_pcb_queue_item

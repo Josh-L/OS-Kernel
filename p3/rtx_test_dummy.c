@@ -15,6 +15,8 @@
 
 void test1()
 {
+	struct s_message * tmp;
+	int i;
     while (1) 
     {
 		//rtx_dbug_out_char('1');
@@ -25,13 +27,12 @@ void test1()
 
 void test2()
 {
-	int * i;
+	VOID * tmp;
     while (1)
     {
 		//rtx_dbug_out_char('2');
 		//rtx_dbug_outs((CHAR *)"\r\n");
 		g_test_fixture.release_processor();
-		
 	}	
  }
 

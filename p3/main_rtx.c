@@ -49,47 +49,53 @@ int main()
 		g_proc_table[i].m_entry = g_test_proc[i].entry;
 		g_proc_table[i].m_stack = g_free_mem = g_free_mem + g_test_proc[i].sz_stack;
 		g_proc_table[i].i_process = 0;
+		g_proc_table[i].sys_process = 0;
 	}
 	
-	// Adding Null Proc to g_proc_table
+	// NULL process
 	g_proc_table[i].m_process_ID = 0;
 	g_proc_table[i].m_priority = 4;
 	g_proc_table[i].m_state = 1;
 	g_proc_table[i].m_entry = null_process;
 	g_proc_table[i].m_stack = g_free_mem = g_free_mem + 1024;
 	g_proc_table[i].i_process = 0;
+	g_proc_table[i].sys_process = 1;
 
-	// Keyboard decoder process
-	g_proc_table[i+1].m_process_ID = 7;
+	// KCD
+	g_proc_table[i+1].m_process_ID = 10;
 	g_proc_table[i+1].m_priority = 0;
 	g_proc_table[i+1].m_state = 1;
 	g_proc_table[i+1].m_entry = kcd;
 	g_proc_table[i+1].m_stack = g_free_mem = g_free_mem + 1024;
 	g_proc_table[i+1].i_process = 0;
+	g_proc_table[i+1].sys_process = 1;
 	
-	// Print to screen process
-	g_proc_table[i+2].m_process_ID = 8;
+	// CRT
+	g_proc_table[i+2].m_process_ID = 11;
 	g_proc_table[i+2].m_priority = 0;
 	g_proc_table[i+2].m_state = 1;
 	g_proc_table[i+2].m_entry = crt;
 	g_proc_table[i+2].m_stack = g_free_mem = g_free_mem + 1024;
 	g_proc_table[i+2].i_process = 0;
+	g_proc_table[i+2].sys_process = 1;
 	
-	// UART ISR i process
-	g_proc_table[i+3].m_process_ID = 9;
+	// UART i-process
+	g_proc_table[i+3].m_process_ID = 12;
 	g_proc_table[i+3].m_priority = 4;
 	g_proc_table[i+3].m_state = 1;
 	g_proc_table[i+3].m_entry = uart;
 	g_proc_table[i+3].m_stack = g_free_mem = g_free_mem + 1024;
 	g_proc_table[i+3].i_process = 1;
+	g_proc_table[i+3].sys_process = 0;
 	
-	// Timer ISR i process
-	g_proc_table[i+4].m_process_ID = 10;
+	// Timer i-process
+	g_proc_table[i+4].m_process_ID = 13;
 	g_proc_table[i+4].m_priority = 4;
 	g_proc_table[i+4].m_state = 1;
 	g_proc_table[i+4].m_entry = timer;
 	g_proc_table[i+4].m_stack = g_free_mem = g_free_mem + 1024;
 	g_proc_table[i+4].i_process = 1;
+	g_proc_table[i+4].sys_process = 0;
 
 	sys_init();
 

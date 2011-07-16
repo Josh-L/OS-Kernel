@@ -17,10 +17,9 @@ struct s_pcb 	    		*g_i_interrupted_process;
 struct s_pcb_queue			g_mem_blocking_queue[NUM_PRIORITIES];
 struct s_pcb_queue_item 	g_mem_blocking_queue_slots[NUM_PROCESSES];
 
-UINT32						*g_kernelStack = 0; // Pointer to kernel stack
-UINT32						g_asmBridge = 0;
-UINT32						g_asmBridge2 = 0;
-
+UINT32						*g_kernelStack; // Pointer to kernel stack
+UINT32						g_asmBridge;
+UINT32						g_asmBridge2;
 
 extern struct s_pcb 		g_proc_table[NUM_PROCESSES];
 extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory region
@@ -42,6 +41,9 @@ VOID sys_init()
 	g_kernelStack = g_free_mem = g_free_mem + KERNEL_STACK_SIZE;
 	g_asmBridge = g_kernelStack;
 	asm("move.l g_asmBridge, %a7");
+	
+	// Go a line below the initialization text
+	rtx_dbug_outs("\n\r");
 	
 	// Insert TRAP subroutines into vector table
 	asm("move.l #release_proc_trap,%d0");
@@ -65,8 +67,8 @@ VOID sys_init()
     ColdFire_vbr_init();
 	
     // Store the timer ISR at auto-vector #6
-    asm( "move.l #timer_entry,%d0" );
-    asm( "move.l %d0,0x10000078" );
+    asm("move.l #timer_entry,%d0");
+    asm("move.l %d0,0x10000078");
 
     // Setup to use auto-vectored interupt level 6, priority 3
     TIMER0_ICR = 0x9B;
@@ -78,8 +80,8 @@ VOID sys_init()
     TIMER0_TMR = 0xFF1B;
 	
     // Store the serial ISR at user vector #64
-    asm( "move.l #asm_serial_entry,%d0" );
-    asm( "move.l %d0,0x10000100" );
+    asm("move.l #asm_serial_entry,%d0");
+    asm("move.l %d0,0x10000100");
 	// Reset the entire UART
     SERIAL1_UCR = 0x10;
     // Reset the receiver
@@ -257,6 +259,7 @@ VOID sys_init()
 	// Enable all interupts
     asm( "move.w #0x2000,%sr" );
 	
+	// Go to first process
 	asm("rte");
 }
 
@@ -510,7 +513,6 @@ VOID receive_message_trap_handler()
 			msg = 0;
 			*sender_ID = 0;
 		}
-		
 	}
 	// If we have a message, then receive it
 	else
@@ -870,44 +872,54 @@ VOID * request_memory_block()
 VOID request_memory_block_trap_handler()
 {
 	VOID * freeBlock = 0;
-
-    UINT8 i;
-	for (i = 0; i < NUM_MEM_BLKS; i++)
-	{
-		if (gp_mem_pool_lookup[i] == 0)
-		{
-			gp_mem_pool_lookup[i] = 1;
-			freeBlock = (VOID *)gp_mem_pool_list[i];
-			break;
-		}
-	}
+	UINT8 i;
 	
-	if(freeBlock == 0)
+	// If this is a non-system and non-i process
+	if(g_current_process->i_process == 0 && g_current_process->sys_process == 0)
 	{
-		if (g_current_process->i_process == 0)
+		for (i = NUM_SYS_MEM_BLKS; i < NUM_MEM_BLKS; i++)
+		{
+			if (gp_mem_pool_lookup[i] == 0)
 			{
-			/*If program reaches this point, there are no free memory blocks (freeBlock still unassigned).
-			This means the current process must be set to blocked, added to the appropriate
-			blocking queue and release processor until it is moved to the ready queue by a
-			release_memory_block operation.*/
-			
-
+				gp_mem_pool_lookup[i] = 1;
+				freeBlock = (VOID *)gp_mem_pool_list[i];
+				break;
+			}
+		}
+		
+		// If there were no free memory blocks
+		if(freeBlock == 0)
+		{
+			// Change process state to blocking on memory
 			g_current_process->m_state = 0;
-			push(&g_mem_blocking_queue[g_current_process->m_priority], g_mem_blocking_queue_slots, g_current_process); //Push current process to memory_blocked queue indicating that it's waiting for a memory block
-				
-				
+			
+			// Push current process to memory_blocked queue indicating that it's waiting for a memory block
+			push(&g_mem_blocking_queue[g_current_process->m_priority], g_mem_blocking_queue_slots, g_current_process);
+			
 			release_processor();
 			
 			// Obtain reserved block
-			for (i = 0; i < NUM_MEM_BLKS; i++)
+			for (i = NUM_SYS_MEM_BLKS; i < NUM_MEM_BLKS; i++)
 			{
 				if (gp_mem_pool_lookup[i] == 2)
 				{
-					
 					gp_mem_pool_lookup[i] = 1;
 					freeBlock = (VOID *)gp_mem_pool_list[i];
 					break;
 				}
+			}
+		}
+	}
+	else
+	{
+		// Check for a block of memory reserved for system processes
+		for (i = 0; i < NUM_SYS_MEM_BLKS; i++)
+		{
+			if (gp_mem_pool_lookup[i] == 0)
+			{
+				gp_mem_pool_lookup[i] = 1;
+				freeBlock = (VOID *)gp_mem_pool_list[i];
+				break;
 			}
 		}
 	}
@@ -968,7 +980,6 @@ int release_memory_block(VOID * memory_block)
 
 VOID release_memory_block_trap_handler()
 {
-	
 	VOID * memory_block;
 	asm("move.l %d2, g_asmBridge");
 	memory_block = (VOID *)g_asmBridge;
@@ -977,36 +988,44 @@ VOID release_memory_block_trap_handler()
     UINT8 i;
 	UINT8 j;
 	
-    for (i = 0; i < NUM_MEM_BLKS; i++)
+	for(i = 0; i < NUM_MEM_BLKS; i++)
 	{
+		// If this is a valid memory block
 		if (gp_mem_pool_list[i] == (UINT32)memory_block && gp_mem_pool_lookup[i] == 1)
 		{
+			// Set block as free
 			gp_mem_pool_lookup[i] = 0;
 			
-			/*
-			We must iterate through the processes blocked waiting for memory blocks, and unblock (set to ready)
-			the highest priority process waiting for a memory block. If all blocked_mem queues are empty, that
-			means there are no processes waiting for a memory block to become available and we can simply return.
-			*/
-			  
-		    for(j = 0; j < NUM_PRIORITIES; j++)
-		    {
-				if(pop(&g_mem_blocking_queue[j], g_mem_blocking_queue_slots, &previously_blocking_proc) != -1)
+			// If this is a regular process
+			if(g_current_process->i_process == 0 && g_current_process->sys_process == 0)
+			{
+				/*
+				We must iterate through the processes blocked waiting for memory blocks, and unblock (set to ready)
+				the highest priority process waiting for a memory block. If all blocked_mem queues are empty, that
+				means there are no processes waiting for a memory block to become available and we can simply return.
+				*/
+				
+				for(j = 0; j < NUM_PRIORITIES; j++)
 				{
-					previously_blocking_proc->m_state = 1;
-					gp_mem_pool_lookup[i] = 2;  //This method was the original idea of group 24 and was used with their permission.
-					push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, previously_blocking_proc);
-					if(g_current_process->m_priority > previously_blocking_proc->m_priority){
-						release_processor();
+					if(pop(&g_mem_blocking_queue[j], g_mem_blocking_queue_slots, &previously_blocking_proc) != -1)
+					{
+						previously_blocking_proc->m_state = 1;
+						gp_mem_pool_lookup[i] = 2;  //This method was the original idea of group 24 and was used with their permission.
+						push(&g_priority_queues[g_current_process->m_priority], g_queue_slots, previously_blocking_proc);
+						if(g_current_process->m_priority > previously_blocking_proc->m_priority){
+							release_processor();
+						}
+						break;
 					}
-					break;
 				}
-		    }
+			}
+			
 			g_asmBridge = 0;
 			asm("move.l g_asmBridge, %d2");
 			return;
 		}
 	}
+	
 	g_asmBridge = -1;
 	asm("move.l g_asmBridge, %d2");
 }

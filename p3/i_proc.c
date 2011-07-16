@@ -56,7 +56,7 @@ void uart()
 				tmp->msg_text = tmp + 1;
 				tmp->msg_text[0] = charIn;
 				tmp->msg_text[1] = '\0';
-				send_message(7, (VOID *)tmp);
+				send_message(10, (VOID *)tmp);
 			}
 			// Enable transmit interrupts so that the user's input is echoed out
 			SERIAL1_IMR = 0x03;
@@ -67,7 +67,7 @@ void uart()
 			int sender;
 			tmp = (struct s_message *)receive_message(&sender);
 			// If we actually get a message
-			if(tmp != 0 && sender == 8)
+			if(tmp != 0)
 			{
 				// Add message text to the output buffer
 				while(tmp->msg_text[0] != 0)
@@ -75,6 +75,7 @@ void uart()
 					buffer_push(&outputBuffer, outputBufferSlots, tmp->msg_text[0]);
 					tmp->msg_text += 1;
 				}
+				
 				// Release the memory block this message holds
 				release_memory_block((VOID *)tmp);
 			}
@@ -183,7 +184,7 @@ void timer()
                 {
                     msg->type = 3;
                     msg->msg_text = msg_text;
-                    send_message(8, (VOID *)msg);
+                    send_message(11, (VOID *)msg);
 
                 }
             }
@@ -264,7 +265,7 @@ void kcd()
 				{
 					output->type = 3;
 					output->msg_text = "Processes currently in ready queues:\n\r";
-					send_message(8, (VOID *)output);
+					send_message(11, (VOID *)output);
 				}
 				
 				printProcessesByState(1);
@@ -277,7 +278,7 @@ void kcd()
 				{
 					output->type = 3;
 					output->msg_text = "Processes currently blocking on memory:\n\r";
-					send_message(8, (VOID *)output);
+					send_message(11, (VOID *)output);
 				}
 				
 				printProcessesByState(0);
@@ -290,7 +291,7 @@ void kcd()
 				{
 					output->type = 3;
 					output->msg_text = "Processes currently blocking on receive:\n\r";
-					send_message(8, (VOID *)output);
+					send_message(11, (VOID *)output);
 				}
 				
 				printProcessesByState(3);
@@ -309,7 +310,7 @@ void kcd()
 				output->msg_text = output + 1;
 				output->msg_text[0] = c;
 				output->msg_text[1] = '\0';
-				send_message(8, (VOID *)output);
+				send_message(11, (VOID *)output);
 				
 				if(inputBufferIndex < 100)
 				{
@@ -326,7 +327,7 @@ void kcd()
 					output->msg_text = output + 1;
 					output->msg_text[0] = '\n';
 					output->msg_text[1] = '\0';
-					send_message(8, (VOID *)output);
+					send_message(11, (VOID *)output);
 					
 					inputBuffer[inputBufferIndex-1] = '\0';
 					inputBufferIndex = 0;
@@ -453,7 +454,7 @@ void kcd()
 								}
 								else
 								{
-									result = "Time format incorrect. Format is HH:MM:SS.\n\r";
+									result = "Invalid time.\n\r";
 								}
 							}
 							else
@@ -489,7 +490,7 @@ void kcd()
 						if(inputBuffer[inputBufferIndex] == ' ')
 						{
 							inputBufferIndex++;
-							if(inputBuffer[inputBufferIndex] < 0x35 && inputBuffer[inputBufferIndex] > 0x2F)
+							if(inputBuffer[inputBufferIndex] < 0x34 && inputBuffer[inputBufferIndex] > 0x2F)
 							{
 								int priority = inputBuffer[inputBufferIndex];
 								inputBufferIndex++;
@@ -539,9 +540,10 @@ void kcd()
 		
 		inputBufferIndex = 0;
 		output = (struct s_message *)request_memory_block();
-		output->msg_text = result;
+		output->msg_text = output + 1;
+		strCopy(result, output->msg_text);
 		output->type = 3;
-		send_message(8, (VOID *)output);
+		send_message(11, (VOID *)output);
 		
 		release_processor();
 	}
@@ -565,7 +567,7 @@ void crt()
 			out->type = 0;
 			out->msg_text = out + 1;
 			strCopy(msg->msg_text, out->msg_text);
-			send_message(9, (VOID *)out);
+			send_message(12, (VOID *)out);
 			
 			// Enable transmit interrupts for the message to be displayed
 			SERIAL1_IMR = 0x03;
@@ -592,7 +594,7 @@ void printProcessesByState(UINT8 state)
 				strCopy(message, output->msg_text);
 				output->msg_text[12] = (char)(0x30 + g_proc_table[i].m_process_ID);
 				output->msg_text[28] = (char)(0x30 + g_proc_table[i].m_priority);
-				send_message(8, (VOID *)output);
+				send_message(11, (VOID *)output);
 			}
 			sent = 1;
 		}
@@ -606,7 +608,7 @@ void printProcessesByState(UINT8 state)
 			output->type = 3;
 			output->msg_text[12] = (char)(0x30 + g_proc_table[i].m_process_ID);
 			output->msg_text[28] = (char)(0x30 + g_proc_table[i].m_priority);
-			send_message(8, (VOID *)output);
+			send_message(11, (VOID *)output);
 		}
 		
 	}
