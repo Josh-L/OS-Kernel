@@ -584,7 +584,7 @@ void printProcessesByState(UINT8 state)
 	CHAR * message = "Process ID: x --> Priority: y\n\r";
 	for(i = 0; i < NUM_PROCESSES; i++)
 	{
-		if(g_proc_table[i].m_state == state && g_proc_table[i].i_process == 0)
+		if(g_proc_table[i].m_state == state && g_proc_table[i].i_process == 0 && g_proc_table[i].sys_process == 0)
 		{
 			output = (struct s_message *)request_memory_block();
 			if(output != 0)
