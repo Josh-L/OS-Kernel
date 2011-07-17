@@ -22,8 +22,6 @@
 #define UART_IPROC_ID	9
 #define TIMER_IPROC_ID	10
 
-#define _DEBUG_HOTKEYS // Enable hotkeys
-
 extern BYTE __end;
 
 //Structs

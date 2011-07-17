@@ -312,15 +312,18 @@ void kcd()
 				output->msg_text[1] = '\0';
 				send_message(11, (VOID *)output);
 				
-				if(inputBufferIndex < 100)
+				if(inputBufferIndex < 100 && c != '\0')
 				{
+					rtx_dbug_outs("InputBufferIndex: ");
+					printHexAddress(inputBufferIndex);
+					rtx_dbug_outs("\n\r");
 					inputBuffer[inputBufferIndex] = c;
 					inputBufferIndex ++;
 				}
 				
 				// If this the end of the command
 				if(c == '\r')
-				{
+				{	
 					// Send a newline character to the user
 					output = (struct s_message *)request_memory_block();
 					output->type = 3;
@@ -335,6 +338,7 @@ void kcd()
 					// Start parsing
 					break;
 				}
+				// If the character is a backspace
 				else if(c == 0x08)
 				{
 					if(inputBufferIndex > 1 && inputBufferIndex != 99)
@@ -353,6 +357,11 @@ void kcd()
 		
 		// Parsing the command
 		inputBufferIndex = 0;
+		
+		if(inputBuffer[0] == 0)
+		{
+			rtx_dbug_outs("Problem.\n\r");
+		}
 		
 		char * result;
 		
@@ -544,8 +553,6 @@ void kcd()
 		strCopy(result, output->msg_text);
 		output->type = 3;
 		send_message(11, (VOID *)output);
-		
-		release_processor();
 	}
 }
 
