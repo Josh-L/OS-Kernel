@@ -29,23 +29,30 @@ extern void __REGISTER_RTX_ENTRY__();
  */
 int main(void)
 {
-    
+    #ifdef _DEBUG
     rtx_dbug_outs((CHAR *)"rtx_loader: started\r\n");
 
     /* register rtx primitives in the test data structure */
     rtx_dbug_outs((CHAR *)"rtx_loader: calling __REGISTER_RTX_ENTRY__()...\r\n");
+    #endif
     __REGISTER_RTX_ENTRY__();
 
     /* start the rtx */
+    #ifdef _DEBUG
     rtx_dbug_outs((CHAR *)"rtx_loader: calling __RTX_ENTRY__()...\r\n");
+    #endif
     __RTX_ENTRY__();
 
 
     /* should never reach here */
+    #ifdef _DEBUG
     rtx_dbug_outs((CHAR *)"rtx_loader: out of rtx, not good!!!\r\n");
+    #endif
     while (1)
     {
+        #ifdef _DEBUG
         rtx_dbug_outs((CHAR *)"rtx_loader: infinite loop!\r\n");
+        #endif
     }
     return 0;
 }

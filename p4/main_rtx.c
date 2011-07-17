@@ -33,7 +33,9 @@ int __main( void )
 int main() 
 {
 	asm( "move.w #0x2700,%sr" );
+    #ifdef _DEBUG
     rtx_dbug_outs((CHAR *)"rtx: Entering main()\r\n");
+    #endif
 
     /* get the third party test proc initialization info */
     __REGISTER_TEST_PROCS_ENTRY__();
@@ -107,7 +109,9 @@ int main()
 
 void  __attribute__ ((section ("__REGISTER_RTX__"))) register_rtx() 
 {
+    #ifdef _DEBUG
     rtx_dbug_outs((CHAR *)"rtx: Entering register_rtx()\r\n");
+    #endif
     g_test_fixture.send_message = send_message;
     g_test_fixture.receive_message = receive_message;
     g_test_fixture.request_memory_block = request_memory_block;
@@ -116,5 +120,7 @@ void  __attribute__ ((section ("__REGISTER_RTX__"))) register_rtx()
     g_test_fixture.delayed_send = delayed_send;
     g_test_fixture.set_process_priority = set_process_priority;
     g_test_fixture.get_process_priority = get_process_priority;
+    #ifdef _DEBUG
     rtx_dbug_outs((CHAR *)"rtx: leaving register_rtx()\r\n");
+    #endif
 }

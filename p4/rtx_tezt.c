@@ -18,18 +18,18 @@ void test1()
     int prio;
     g_test_fixture.set_process_priority(1, 1);
     g_test_fixture.set_process_priority(2, 2);
-    prio = g_test_fixture.get_process_piority(2);
+    prio = g_test_fixture.get_process_priority(2);
     if(prio == 2)
     {
         #ifdef _DEBUG
-        rtx_dbug_outs((CHAR *)"S201G012_test: test 1 OK");
+        rtx_dbug_outs((CHAR *)"S201G012_test: test 1 OK\n\r");
         #endif
         test_results++;
     }
     else
     {
         #ifdef _DEBUG
-        rtx_dbug_outs((CHAR *)"S201G012_test: test 1 FAIL");
+        rtx_dbug_outs((CHAR *)"S201G012_test: test 1 FAIL\n\r");
         #endif
     }
     
@@ -45,42 +45,47 @@ void test1()
 void test2()
 {
     int i;
-    int msg_type = -1;
+    int * msg_type;
+    *msg_type = -1;
 	VOID * msg = g_test_fixture.receive_message(&i);
-    msg_type = *(msg + 4);
-    if(msg_type == 99)
+    msg_type = msg + 8;
+    
+    if(*msg_type == 99)
     {
         #ifdef _DEBUG
-        rtx_dbug_outs((CHAR *)"S201G012_test: test 2 OK");
+        rtx_dbug_outs((CHAR *)"S201G012_test: test 2 OK\n\r");
         #endif
         test_results++;
     }
     else
     {
         #ifdef _DEBUG
-        rtx_dbug_outs((CHAR *)"S201G012_test: test 2 FAIL");
+        rtx_dbug_outs((CHAR *)"S201G012_test: test 2 FAIL\n\r");
         #endif
     }
     
     if(test_results == 0)
     {
         #ifdef _DEBUG
-        rtx_dbug_outs((CHAR *)"S201G012_test: 0/2 tests OK");
-        rtx_dbug_outs((CHAR *)"S201G012_test: 2/2 tests FAIL");
+        rtx_dbug_outs((CHAR *)"S201G012_test: 0/2 tests OK\n\r");
+        rtx_dbug_outs((CHAR *)"S201G012_test: 2/2 tests FAIL\n\r");
+        rtx_dbug_outs((CHAR *)"S201G012_test: END\n\r");
         #endif
     }
     else if(test_results == 1)
     {
         #ifdef _DEBUG
-        rtx_dbug_outs((CHAR *)"S201G012_test: 1/2 tests OK");
-        rtx_dbug_outs((CHAR *)"S201G012_test: 1/2 tests FAIL");
+        rtx_dbug_outs((CHAR *)"S201G012_test: 1/2 tests OK\n\r");
+        rtx_dbug_outs((CHAR *)"S201G012_test: 1/2 tests FAIL\n\r");
+        rtx_dbug_outs((CHAR *)"S201G012_test: END\n\r");
         #endif
     }
     else
     {
         #ifdef _DEBUG
-        rtx_dbug_outs((CHAR *)"S201G012_test: 2/2 tests OK");
-        rtx_dbug_outs((CHAR *)"S201G012_test: 0/2 tests FAIL");
+        rtx_dbug_outs((CHAR *)"S201G012_test: 2/2 tests OK\n\r");
+        rtx_dbug_outs((CHAR *)"S201G012_test: 0/2 tests FAIL\n\r");
+        rtx_dbug_outs((CHAR *)"S201G012_test: END\n\r");
         #endif
     }
     
@@ -93,8 +98,10 @@ void test2()
 
 void test3()
 {
+    int * msg_type;
     VOID * msg = g_test_fixture.request_memory_block();
-    *(msg + 4) = 99;
+    msg_type = (int *)(msg + 8);
+    *msg_type = 99;
     g_test_fixture.send_message(2, msg);
     while (1) 
     {
@@ -133,8 +140,8 @@ void __attribute__ ((section ("__REGISTER_TEST_PROCS__")))register_test_proc()
     test_results = 0;
     #ifdef _DEBUG
     rtx_dbug_outs((CHAR *)"rtx_test: register_test_proc()\r\n");
-    rtx_dbug_outs((CHAR *)"S201G012_test: START");
-    rtx_dbug_outs((CHAR *)"S201G012_test: total 2 tests");
+    rtx_dbug_outs((CHAR *)"S201G012_test: START\n\r");
+    rtx_dbug_outs((CHAR *)"S201G012_test: total 2 tests\n\r");
     #endif
 
     for (i = 0; i< NUM_TEST_PROCS; i++ ) {
@@ -156,6 +163,8 @@ void __attribute__ ((section ("__REGISTER_TEST_PROCS__")))register_test_proc()
  */
 int main(void)
 {
+    #ifdef _DEBUG
     rtx_dbug_outs((CHAR *)"rtx_test: started\r\n");
+    #endif
     return 0;
 }
