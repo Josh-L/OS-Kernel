@@ -52,8 +52,8 @@ void uart()
 			tmp = (struct s_message *)request_memory_block();
 			if(tmp != 0)
 			{
-				tmp->type = 0;
-				tmp->msg_text = tmp + 1;
+				tmp->type = 1;
+				tmp->msg_text = tmp + 4;
 				tmp->msg_text[0] = charIn;
 				tmp->msg_text[1] = '\0';
 				send_message(10, (VOID *)tmp);
@@ -69,6 +69,7 @@ void uart()
 			// If we actually get a message
 			if(tmp != 0)
 			{
+				tmp->msg_text = tmp + 4;
 				// Add message text to the output buffer
 				while(tmp->msg_text[0] != 0)
 				{
@@ -183,7 +184,7 @@ void timer()
                 if(msg != 0)
                 {
                     msg->type = 3;
-                    msg->msg_text = msg_text;
+                    msg->msg_text = msg + 4;
                     send_message(11, (VOID *)msg);
 
                 }
@@ -209,150 +210,166 @@ void kcd()
 		{
 			// Receive character in message
 			input = (struct s_message *)receive_message(&sender_ID);
+			input->msg_text = input + 4;
 			
-			// Save character
-			c = input->msg_text[0];
-			
-			// Release memory block
-			release_memory_block((VOID *)input);
-			
-			// If this command is a debug character
-#ifdef _DEBUG_HOTKEYS
-			if(c == '-')
+			// Register command
+			if(input->type == 2)
 			{
-				rtx_dbug_outs("Current clock status: ");
-				printHexAddress(g_clock_enabled);
-				rtx_dbug_outs("\r\n");
-			}
-			else if(c == '_')
-			{
-				if(g_clock_enabled == 0)
+				rtx_dbug_outs("Command registering message received.\n\r");
+				UINT8 i;
+				for(i = 0; i < NUM_PROCESSES; i++)
 				{
-					g_clock_enabled = 1;
-					rtx_dbug_outs("Clock turning ON\r\n");
-				}
-				else
-				{
-					g_clock_enabled = 0;
-					rtx_dbug_outs("Clock turning OFF\r\n");
-				}
-			}
-			else if(c == '=')
-			{
-				if(g_clock_enabled == 0)
-				{
-					rtx_dbug_outs("Clock OFF\r\n");
-				}
-				else
-				{
-					rtx_dbug_outs("Clock ON\r\n");
-				}
-				rtx_dbug_outs("Seconds: ");
-				printHexAddress(g_seconds);
-				rtx_dbug_outs("\r\n");
-				rtx_dbug_outs("Minutes: ");
-				printHexAddress(g_minutes);
-				rtx_dbug_outs("\r\n");
-				rtx_dbug_outs("Hours: ");
-				printHexAddress(g_hours);
-				rtx_dbug_outs("\r\n");
-			}
-			else if(c == '~')
-			{
-				// Display processes currently on the ready queues and their priority
-				output = (struct s_message *)request_memory_block();
-				if(output != 0)
-				{
-					output->type = 3;
-					output->msg_text = "Processes currently in ready queues:\n\r";
-					send_message(11, (VOID *)output);
-				}
-				
-				printProcessesByState(1);
-			}
-			else if(c == '|')
-			{
-				// Display processes currently on the blocked on memory queue and their priorities
-				output = (struct s_message *)request_memory_block();
-				if(output != 0)
-				{
-					output->type = 3;
-					output->msg_text = "Processes currently blocking on memory:\n\r";
-					send_message(11, (VOID *)output);
-				}
-				
-				printProcessesByState(0);
-			}
-			else if(c == '!')
-			{
-				// Display processes currently on the blocking on receive and their priorities
-				output = (struct s_message *)request_memory_block();
-				if(output != 0)
-				{
-					output->type = 3;
-					output->msg_text = "Processes currently blocking on receive:\n\r";
-					send_message(11, (VOID *)output);
-				}
-				
-				printProcessesByState(3);
-			}
-			else if(c == '\t')
-			{
-				// Invoke an error
-				asm("rte");
-			}
-			else
-			{
-#endif
-				// Else echo character to user
-				output = (struct s_message *)request_memory_block();
-				output->type = 3;
-				output->msg_text = output + 1;
-				output->msg_text[0] = c;
-				output->msg_text[1] = '\0';
-				send_message(11, (VOID *)output);
-				
-				if(inputBufferIndex < 100 && c != '\0')
-				{
-					rtx_dbug_outs("InputBufferIndex: ");
-					printHexAddress(inputBufferIndex);
-					rtx_dbug_outs("\n\r");
-					inputBuffer[inputBufferIndex] = c;
-					inputBufferIndex ++;
-				}
-				
-				// If this the end of the command
-				if(c == '\r')
-				{	
-					// Send a newline character to the user
-					output = (struct s_message *)request_memory_block();
-					output->type = 3;
-					output->msg_text = output + 1;
-					output->msg_text[0] = '\n';
-					output->msg_text[1] = '\0';
-					send_message(11, (VOID *)output);
-					
-					inputBuffer[inputBufferIndex-1] = '\0';
-					inputBufferIndex = 0;
-					
-					// Start parsing
-					break;
-				}
-				// If the character is a backspace
-				else if(c == 0x08)
-				{
-					if(inputBufferIndex > 1 && inputBufferIndex != 99)
+					if(g_proc_table[i].m_process_ID == sender_ID)
 					{
-						inputBufferIndex -= 2;
+						
+					}
+				}
+			}
+			// Parse input
+			else if(input->type == 1)
+			{
+				// Save character
+				c = input->msg_text[0];
+				
+				// If this command is a debug character
+#ifdef _DEBUG_HOTKEYS
+				if(c == '-')
+				{
+					rtx_dbug_outs("Current clock status: ");
+					printHexAddress(g_clock_enabled);
+					rtx_dbug_outs("\r\n");
+				}
+				else if(c == '_')
+				{
+					if(g_clock_enabled == 0)
+					{
+						g_clock_enabled = 1;
+						rtx_dbug_outs("Clock turning ON\r\n");
 					}
 					else
 					{
-						inputBufferIndex -= 1;
+						g_clock_enabled = 0;
+						rtx_dbug_outs("Clock turning OFF\r\n");
 					}
 				}
-#ifdef _DEBUG_HOTKEYS
-			}
+				else if(c == '=')
+				{
+					if(g_clock_enabled == 0)
+					{
+						rtx_dbug_outs("Clock OFF\r\n");
+					}
+					else
+					{
+						rtx_dbug_outs("Clock ON\r\n");
+					}
+					rtx_dbug_outs("Seconds: ");
+					printHexAddress(g_seconds);
+					rtx_dbug_outs("\r\n");
+					rtx_dbug_outs("Minutes: ");
+					printHexAddress(g_minutes);
+					rtx_dbug_outs("\r\n");
+					rtx_dbug_outs("Hours: ");
+					printHexAddress(g_hours);
+					rtx_dbug_outs("\r\n");
+				}
+				else if(c == '~')
+				{
+					// Display processes currently on the ready queues and their priority
+					output = (struct s_message *)request_memory_block();
+					if(output != 0)
+					{
+						output->type = 3;
+						output->msg_text = output + 4;
+						strCopy("Processes currently in ready queues:\n\r", output->msg_text);
+						send_message(11, (VOID *)output);
+					}
+					
+					printProcessesByState(1);
+				}
+				else if(c == '|')
+				{
+					// Display processes currently on the blocked on memory queue and their priorities
+					output = (struct s_message *)request_memory_block();
+					if(output != 0)
+					{
+						output->type = 3;
+						output->msg_text = output + 4;
+						strCopy("Processes currently blocking on memory:\n\r", output->msg_text);
+						send_message(11, (VOID *)output);
+					}
+					
+					printProcessesByState(0);
+				}
+				else if(c == '!')
+				{
+					// Display processes currently on the blocking on receive and their priorities
+					output = (struct s_message *)request_memory_block();
+					if(output != 0)
+					{
+						output->type = 3;
+						output->msg_text = output + 4;
+						strCopy("Processes currently blocking on receive:\n\r", output->msg_text);
+						send_message(11, (VOID *)output);
+					}
+					
+					printProcessesByState(3);
+				}
+				else if(c == '\t')
+				{
+					// Invoke an error
+					asm("rte");
+				}
+				else
+				{
 #endif
+					// Else echo character to user
+					output = (struct s_message *)request_memory_block();
+					output->type = 3;
+					output->msg_text = output + 4;
+					output->msg_text[0] = c;
+					output->msg_text[1] = '\0';
+					send_message(11, (VOID *)output);
+					
+					if(inputBufferIndex < 100 && c != '\0')
+					{
+						inputBuffer[inputBufferIndex] = c;
+						inputBufferIndex ++;
+					}
+					
+					// If this the end of the command
+					if(c == '\r')
+					{	
+						// Send a newline character to the CRT
+						output = (struct s_message *)request_memory_block();
+						output->type = 3;
+						output->msg_text = output + 4;
+						output->msg_text[0] = '\n';
+						output->msg_text[1] = '\0';
+						send_message(11, (VOID *)output);
+						
+						inputBuffer[inputBufferIndex-1] = '\0';
+						inputBufferIndex = 0;
+						
+						// Start parsing
+						break;
+					}
+					// If the character is a backspace
+					else if(c == 0x08)
+					{
+						if(inputBufferIndex > 1 && inputBufferIndex != 99)
+						{
+							inputBufferIndex -= 2;
+						}
+						else
+						{
+							inputBufferIndex -= 1;
+						}
+					}
+#ifdef _DEBUG_HOTKEYS
+				}
+#endif
+			}
+			release_memory_block((VOID *)input);
 		}
 		
 		// Parsing the command
@@ -549,7 +566,7 @@ void kcd()
 		
 		inputBufferIndex = 0;
 		output = (struct s_message *)request_memory_block();
-		output->msg_text = output + 1;
+		output->msg_text = output + 4;
 		strCopy(result, output->msg_text);
 		output->type = 3;
 		send_message(11, (VOID *)output);
@@ -569,10 +586,12 @@ void crt()
 		// If we get the correct message type
         if(msg->type == 3)
         {
+			// Reset the new message's pointer to be at 64th byte, if a user process even knows how to get here
+			msg->msg_text = msg + 4;
 			// Send message to UART to output the text
 			out = (struct s_message *)request_memory_block();
 			out->type = 0;
-			out->msg_text = out + 1;
+			out->msg_text = out + 4;
 			strCopy(msg->msg_text, out->msg_text);
 			send_message(12, (VOID *)out);
 			
@@ -596,7 +615,7 @@ void printProcessesByState(UINT8 state)
 			output = (struct s_message *)request_memory_block();
 			if(output != 0)
 			{
-				output->msg_text = output + 1;
+				output->msg_text = output + 4;
 				output->type = 3;
 				strCopy(message, output->msg_text);
 				output->msg_text[12] = (char)(0x30 + g_proc_table[i].m_process_ID);
@@ -611,7 +630,8 @@ void printProcessesByState(UINT8 state)
 		output = (struct s_message *)request_memory_block();
 		if(output != 0)
 		{
-			output->msg_text = "(None)\n\r";
+			output->msg_text = output + 4;
+			strCopy("(None)\n\r", output->msg_text);
 			output->type = 3;
 			output->msg_text[12] = (char)(0x30 + g_proc_table[i].m_process_ID);
 			output->msg_text[28] = (char)(0x30 + g_proc_table[i].m_priority);
