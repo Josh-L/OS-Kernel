@@ -38,7 +38,7 @@ void proc_a()
 	num = 0;
 	while(1)
 	{
-		rtx_dbug_outs((CHAR *)"Process A sending messages to Process B.\r\n");
+		//rtx_dbug_outs((CHAR *)"Process A sending messages to Process B.\r\n");
 		
 		p = (struct s_message *)request_memory_block();
 		// Message type of 4 is “count_report"
@@ -124,7 +124,9 @@ void proc_c()
 				// To hibernate for 10 seconds, delay send itself a message
 				q = (struct s_message *)request_memory_block();
 				q->type = 5; //Message Type of 5 is "WakeUp10"
-				delayed_send(9, (VOID *)q, 10);
+				printHexAddress((VOID *) q);
+				rtx_dbug_outs((CHAR *)"\r\n");
+				delayed_send(9, (VOID *)q, 10000);
 				
 				rtx_dbug_outs((CHAR *)"Process C hibernating.\r\n");
 				

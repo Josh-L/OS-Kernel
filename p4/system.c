@@ -1092,9 +1092,9 @@ VOID delayed_send_trap_handler()
 		{
 			if(g_proc_table[i].m_process_ID == process_ID)
 			{
-				send_reqs[i].envelope = (VOID *)new_message;
-				send_reqs[i].exp = delay;
-				send_reqs[i].process_slot = (int)i;
+				send_reqs[j].envelope = (VOID *)new_message;
+				send_reqs[j].exp = delay;
+				send_reqs[j].process_slot = (int)i;
 				break;
 			}
 		}
@@ -1108,7 +1108,6 @@ VOID delayed_send_trap_handler()
 			g_asmBridge = 0;
 		}
 	}
-	
 	asm("move.l g_asmBridge, %d1");
 }
 

@@ -121,7 +121,6 @@ void timer()
 			if (send_reqs[i].envelope != 0)
 			{
 				send_reqs[i].exp -= temp_counter;
-				
 				if(send_reqs[i].exp <= 0)
 				{
 					// Send the message
