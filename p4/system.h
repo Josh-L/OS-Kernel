@@ -8,11 +8,13 @@
 #define NUM_PRIORITIES		5
 
 #define MEM_BLK_SIZE 2048
-#define NUM_MEM_BLKS 255
-#define NUM_SYS_MEM_BLKS 225
+#define NUM_MEM_BLKS 50
+#define NUM_SYS_MEM_BLKS 20
 
-#define NUM_PROCESSES 11
+#define NUM_PROCESSES 13
 #define NUM_TEST_PROCS 6
+
+#define	REGISTERED_COMMANDS 10
 
 #define NUM_DELAYED_SLOTS 10
 
@@ -75,7 +77,6 @@ struct s_pcb
     VOID    (*m_entry)();
 	struct	s_message_queue msg_queue;
 	struct	s_message_queue_item msg_queue_slots[NUM_PROCESSES];
-	char	commandRegister[20];
 	UINT8	i_process; // 0 means is not, 1 means it is
 	UINT8	sys_process; // 0 means is not, 1 means it is
 };
@@ -119,6 +120,8 @@ SINT8   buffer_push(struct s_char_queue * queue, struct s_char_queue_item slots[
 VOID	null_process();
 VOID	kcd();
 VOID	crt();
+VOID	wall_clock();
+VOID	change_priority();
 
 // i-processes
 VOID	uart();

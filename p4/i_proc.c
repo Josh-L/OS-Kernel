@@ -203,21 +203,35 @@ void kcd()
 	char inputBuffer[100];
 	UINT32 inputBufferIndex = 0;
 	
+	char registered_commands[REGISTERED_COMMANDS][20];
+	int registered_ID [REGISTERED_COMMANDS];
+	
+	UINT8 i;
+	UINT8 j;
+	UINT8 matched;
+	
+	for(i = 0; i < NUM_PROCESSES; i++)
+	{
+		registered_ID[i] = -1;
+	}
+	
 	while(1)
 	{
+		inputBufferIndex = 0;
 		while(1)
 		{
 			// Receive character in message
 			input = (struct s_message *)receive_message(&sender_ID);
+			
 			// Register command
 			if(input->type == 2)
 			{
-				UINT8 i;
-				for(i = 0; i < NUM_PROCESSES; i++)
+				for(i = 0; i < REGISTERED_COMMANDS; i++)
 				{
-					if(g_proc_table[i].m_process_ID == sender_ID)
+					if(registered_ID[i] == -1)
 					{
-						strCopy(input->msg_text, &g_proc_table[i].commandRegister[0]);
+						registered_ID[i] = sender_ID;
+						strCopy(input->msg_text, &registered_commands[i][0]);
 						break;
 					}
 				}
@@ -231,12 +245,6 @@ void kcd()
 				// If this command is a debug character
 #ifdef _DEBUG_HOTKEYS
 				if(c == '-')
-				{
-					rtx_dbug_outs("Current clock status: ");
-					printHexAddress(g_clock_enabled);
-					rtx_dbug_outs("\r\n");
-				}
-				else if(c == '_')
 				{
 					if(g_clock_enabled == 0)
 					{
@@ -369,201 +377,25 @@ void kcd()
 			release_memory_block((VOID *)input);
 		}
 		
-		// Parsing the command
-		inputBufferIndex = 0;
+		matched = 0;
+		output = (struct s_message *)request_memory_block();
+		output->type = 3;
+		output->msg_text = output + 4;
 		
-		char * result;
-		
-		if(inputBuffer[inputBufferIndex] == '%')
+		if(inputBuffer[0] == '%')
 		{
-			inputBufferIndex++;
-			if(inputBuffer[inputBufferIndex] == 'W')
+			// Check process registered commands
+			for(i = 0; i < REGISTERED_COMMANDS; i++)
 			{
-				inputBufferIndex++;
-				if(inputBuffer[inputBufferIndex] == 'T')
-				{
-					inputBufferIndex++;
-					if(inputBuffer[inputBufferIndex] == '\0')
-					{
-						g_clock_enabled = 0;
-						result = "Turning off clock.\n\r";
-					}
-				}
-				else if(inputBuffer[inputBufferIndex] == 'S')
-				{
-					inputBufferIndex++;
-					if(inputBuffer[inputBufferIndex] == ' ')
-					{
-						inputBufferIndex++;
-						if(inputBuffer[inputBufferIndex] > 0x2F && inputBuffer[inputBufferIndex] < 0x33)
-						{
-							int hours = (inputBuffer[inputBufferIndex] - 0x30)*10;
-							inputBufferIndex++;
-							if(inputBuffer[inputBufferIndex] > 0x2F && inputBuffer[inputBufferIndex] < 0x3A)
-							{
-								hours += (inputBuffer[inputBufferIndex] - 0x30);
-								if(hours < 24)
-								{
-									inputBufferIndex++;
-									if(inputBuffer[inputBufferIndex] == 0x3A)
-									{
-										inputBufferIndex++;
-										if(inputBuffer[inputBufferIndex] < 0x36 && inputBuffer[inputBufferIndex] > 0x2F)
-										{
-											int minutes = (inputBuffer[inputBufferIndex] - 0x30)*10;
-											inputBufferIndex++;
-											if(inputBuffer[inputBufferIndex] < 0x3A && inputBuffer[inputBufferIndex] > 0x2F)
-											{
-												minutes += (inputBuffer[inputBufferIndex] - 0x30);
-												inputBufferIndex++;
-												if(inputBuffer[inputBufferIndex] == 0x3A)
-												{
-													inputBufferIndex++;
-													if(inputBuffer[inputBufferIndex] < 0x36 && inputBuffer[inputBufferIndex] > 0x2F)
-													{
-														int seconds = (inputBuffer[inputBufferIndex] - 0x30)*10;
-														inputBufferIndex++;
-														if(inputBuffer[inputBufferIndex] < 0x3A && inputBuffer[inputBufferIndex] > 0x2F)
-														{
-															seconds += (inputBuffer[inputBufferIndex] - 0x30);
-															inputBufferIndex++;
-															if(inputBuffer[inputBufferIndex] == '\0')
-															{
-																g_clock_enabled = 1;
-																g_hours = hours;
-																g_minutes = minutes;
-																g_seconds = seconds;
-																result = "Turning clock on.\n\r";
-															}
-															else
-															{
-																result = "Time format incorrect. Format is HH:MM:SS.\n\r";
-															}
-														}
-														else
-														{
-															result = "Time format incorrect. Format is HH:MM:SS.\n\r";
-														}
-													}
-													else
-													{
-														result = "Time format incorrect. Format is HH:MM:SS.\n\r";
-													}
-												}
-												else
-												{
-													result = "Time format incorrect. Format is HH:MM:SS.\n\r";
-												}
-											}
-											else
-											{
-												result = "Time format incorrect. Format is HH:MM:SS.\n\r";
-											}
-										}
-										else
-										{
-											result = "Time format incorrect. Format is HH:MM:SS.\n\r";
-										}
-									}
-									else
-									{
-										result = "Time format incorrect. Format is HH:MM:SS.\n\r";
-									}
-								}
-								else
-								{
-									result = "Invalid time.\n\r";
-								}
-							}
-							else
-							{
-								result = "Time format incorrect. Format is HH:MM:SS.\n\r";
-							}
-						}
-						else
-						{
-							result = "Time format incorrect. Format is HH:MM:SS.\n\r";
-						}
-					}
-					else
-					{
-						result = "Invalid command.\n\r";
-					}
-				}
-				else
-				{
-					result = "Invalid command.\n\r";
-				}
-			}
-			else if(inputBuffer[inputBufferIndex] == 'C')
-			{
-				inputBufferIndex++;
-				if(inputBuffer[inputBufferIndex] == ' ')
-				{
-					inputBufferIndex++;
-					if(inputBuffer[inputBufferIndex] < 0x37 && inputBuffer[inputBufferIndex] > 0x30)
-					{
-						int process_id = inputBuffer[inputBufferIndex];
-						inputBufferIndex++;
-						if(inputBuffer[inputBufferIndex] == ' ')
-						{
-							inputBufferIndex++;
-							if(inputBuffer[inputBufferIndex] < 0x34 && inputBuffer[inputBufferIndex] > 0x2F)
-							{
-								int priority = inputBuffer[inputBufferIndex];
-								inputBufferIndex++;
-								if(inputBuffer[inputBufferIndex] == '\0')
-								{
-									result = "Changed process ID x to priority level y.\n\r";
-									result[19] = (char)process_id;
-									result[39] = (char)priority;
-									process_id = process_id - 0x30;
-									priority = priority - 0x30;
-									set_process_priority(process_id, priority);
-								}
-								else
-								{
-									result = "Invalid command.\n\r";
-								}
-							}
-							else
-							{
-								result = "Invalid priority level.\n\r";
-							}
-						}
-						else
-						{
-							result = "Invalid command.\n\r";
-						}
-					}
-					else
-					{
-						result = "Invalid process ID.\n\r";
-					}
-				}
-				else
-				{
-					result = "Invalid command.\n\r";
-				}
-			}
-			else
-			{
-				// Default to invalid
-				result = "Invalid command.\n\r";
-				
-				// Check process registered commands
-				UINT8 i;
-				UINT8 j;
-				UINT8 matched = 0;
-				for(i = 0; i < NUM_PROCESSES; i++)
+				if(registered_ID[i] != -1)
 				{
 					for(j = 0; j < 20; j++)
 					{
-						if(g_proc_table[i].commandRegister[j] == 0)
+						if(registered_commands[i][j] == 0)
 						{
 							break;
 						}
-						else if(g_proc_table[i].commandRegister[j] == inputBuffer[j+1])
+						else if(registered_commands[i][j] == inputBuffer[j+1])
 						{
 							matched = 1;
 						}
@@ -573,46 +405,25 @@ void kcd()
 							break;
 						}
 					}
-					if(matched == 1)
+				}
+				
+				if(matched == 1)
+				{
+					// Make sure there's a space, or end of command
+					if(inputBuffer[j+1] == 0 || inputBuffer[j+1] == ' ')
 					{
-						// Make sure there's a space, or end of command
-						if(inputBuffer[j+1] == 0)
-						{
-							result = "\0";
-							struct s_message * fwd = (struct s_message *)request_memory_block;
-							fwd->type = 3;
-							fwd->msg_text = fwd + 4;
-							fwd->msg_text[0] = 0;
-							send_message(g_proc_table[i].m_process_ID, (VOID *)fwd);
-							break;
-						}
-						else if(inputBuffer[j+1] == ' ')
-						{
-							result = "\0";
-							struct s_message * fwd = (struct s_message *)request_memory_block;
-							fwd->type = 3;
-							fwd->msg_text = fwd + 4;
-							strCopy(&inputBuffer[j+2], fwd->msg_text);
-							send_message(g_proc_table[i].m_process_ID, (VOID *)fwd);
-							break;
-						}
-						matched = 0;
+						strCopy(&inputBuffer[1], output->msg_text);
+						send_message(registered_ID[i], (VOID *)output);
+						break;
 					}
+					matched = 0;
 				}
 			}
 		}
-		else
-		{
-			result = "Invalid command.\n\r";
-		}
 		
-		if(result[0] != 0)
+		if(matched == 0)
 		{
-			inputBufferIndex = 0;
-			output = (struct s_message *)request_memory_block();
-			output->msg_text = output + 4;
-			strCopy(result, output->msg_text);
-			output->type = 3;
+			strCopy("Invalid command.\n\r", output->msg_text);
 			send_message(11, (VOID *)output);
 		}
 	}
@@ -628,6 +439,7 @@ void crt()
     while(1)
     {
 		msg = (struct s_message *)receive_message(&sender_ID);
+		
 		// If we get the correct message type
         if(msg->type == 3)
         {
@@ -643,6 +455,230 @@ void crt()
         }
 		release_memory_block((VOID *)msg);
     }
+}
+
+void wall_clock()
+{
+	int i;
+	struct s_message * output;
+	
+	// Register WS command
+	struct s_message * tmp = request_memory_block();
+	tmp->type = 2;
+	tmp->msg_text = tmp + 4;
+	strCopy("WS", tmp->msg_text);
+	send_message(10, (VOID *)tmp);
+	
+	// Register WT command
+	tmp = request_memory_block();
+	tmp->type = 2;
+	tmp->msg_text = tmp + 4;
+	strCopy("WT", tmp->msg_text);
+	send_message(10, (VOID *)tmp);
+	
+	while(1)
+	{
+		tmp = receive_message(&i);
+		
+		// Prepare output message
+		output = (struct s_message *)request_memory_block();
+		output->type = 3;
+		output->msg_text = output + 4;
+		
+		int i = 0;
+		
+		if(tmp->msg_text[0] == 'W')
+		{
+			if(tmp->msg_text[1] == 'T')
+			{
+				if(tmp->msg_text[2] == 0)
+				{
+					g_clock_enabled = 0;
+					strCopy("Turning clock off\n\r", output->msg_text);
+				}
+				else
+				{
+					strCopy("Invalid command.\n\r", output->msg_text);
+				}
+			}
+			else if(tmp->msg_text[1] == 'S')
+			{
+				if(tmp->msg_text[2] == ' ')
+				{
+					if(tmp->msg_text[3] > 0x2F && tmp->msg_text[3] < 0x33)
+					{
+						int hours = (tmp->msg_text[3] - 0x30)*10;
+						if(tmp->msg_text[4] > 0x2F && tmp->msg_text[4] < 0x3A)
+						{
+							hours += (tmp->msg_text[4] - 0x30);
+							if(hours < 24)
+							{
+								if(tmp->msg_text[5] == 0x3A)
+								{
+									if(tmp->msg_text[6] < 0x36 && tmp->msg_text[6] > 0x2F)
+									{
+										int minutes = (tmp->msg_text[6] - 0x30)*10;
+										if(tmp->msg_text[7] < 0x3A && tmp->msg_text[7] > 0x2F)
+										{
+											minutes += (tmp->msg_text[7] - 0x30);
+											if(tmp->msg_text[8] == 0x3A)
+											{
+												if(tmp->msg_text[9] < 0x36 && tmp->msg_text[9] > 0x2F)
+												{
+													int seconds = (tmp->msg_text[9] - 0x30)*10;
+													if(tmp->msg_text[10] < 0x3A && tmp->msg_text[10] > 0x2F)
+													{
+														seconds += (tmp->msg_text[10] - 0x30);
+														if(tmp->msg_text[11] == '\0')
+														{
+															g_hours = hours;
+															g_minutes = minutes;
+															g_seconds = seconds;
+															g_clock_enabled = 1;
+															strCopy("Turning clock on.\n\r", output->msg_text);
+														}
+														else
+														{
+															strCopy("Time format incorrect. Format is HH:MM:SS.\n\r", output->msg_text);
+														}
+													}
+													else
+													{
+														strCopy("Time format incorrect. Format is HH:MM:SS.\n\r", output->msg_text);
+													}
+												}
+												else
+												{
+													strCopy("Time format incorrect. Format is HH:MM:SS.\n\r", output->msg_text);
+												}
+											}
+											else
+											{
+												strCopy("Time format incorrect. Format is HH:MM:SS.\n\r", output->msg_text);
+											}
+										}
+										else
+										{
+											strCopy("Time format incorrect. Format is HH:MM:SS.\n\r", output->msg_text);
+										}
+									}
+									else
+									{
+										strCopy("Time format incorrect. Format is HH:MM:SS.\n\r", output->msg_text);
+									}
+								}
+								else
+								{
+									strCopy("Time format incorrect. Format is HH:MM:SS.\n\r", output->msg_text);
+								}
+							}
+							else
+							{
+								strCopy("Time format incorrect. Format is HH:MM:SS.\n\r", output->msg_text);
+							}
+						}
+						else
+						{
+							strCopy("Time format incorrect. Format is HH:MM:SS.\n\r", output->msg_text);
+						}
+					}
+					else
+					{
+						strCopy("Time format incorrect. Format is HH:MM:SS.\n\r", output->msg_text);
+					}
+				}
+				else
+				{
+					strCopy("Invalid command.\n\r", output->msg_text);
+				}
+			}
+			else
+			{
+				strCopy("Invalid command.\n\r", output->msg_text);
+			}
+		}
+		else
+		{
+			strCopy("Invalid command.\n\r", output->msg_text);
+		}
+		
+		release_memory_block((VOID *)tmp);
+		
+		// Send message to CRT
+		send_message(11, (VOID *)output);
+	}
+}
+
+void change_priority()
+{
+	int i;
+	struct s_message * output;
+	
+	// Register C command
+	struct s_message * tmp = request_memory_block();
+	tmp->type = 2;
+	tmp->msg_text = tmp + 4;
+	strCopy("C", tmp->msg_text);
+	send_message(10, (VOID *)tmp);
+	
+	while(1)
+	{
+		tmp = receive_message(&i);
+		
+		// Prepare output message
+		output = (struct s_message *)request_memory_block();
+		output->type = 3;
+		output->msg_text = output + 4;
+		
+		if(tmp->msg_text[1] == ' ')
+		{
+			if(tmp->msg_text[2] < 0x3A && tmp->msg_text[2] > 0x30)
+			{
+				int process_id = tmp->msg_text[2];
+				if(tmp->msg_text[3] == ' ')
+				{
+					if(tmp->msg_text[4] < 0x34 && tmp->msg_text[4] > 0x2F)
+					{
+						int priority = tmp->msg_text[4];
+						if(tmp->msg_text[5] == '\0')
+						{
+							strCopy("Changed process ID x to priority level y.\n\r", output->msg_text);
+							output->msg_text[19] = (char)process_id;
+							output->msg_text[39] = (char)priority;
+							process_id = process_id - 0x30;
+							priority = priority - 0x30;
+							set_process_priority(process_id, priority);
+						}
+						else
+						{
+							strCopy("Invalid command.\n\r", output->msg_text);
+						}
+					}
+					else
+					{
+						strCopy("Invalid priority.\n\r", output->msg_text);
+					}
+				}
+				else
+				{
+					strCopy("Invalid command.\n\r", output->msg_text);
+				}
+			}
+			else
+			{
+				strCopy("Invalid process ID.\n\r", output->msg_text);
+			}
+		}
+		else
+		{
+			strCopy("Invalid command.\n\r", output->msg_text);
+		}
+		
+		release_memory_block((VOID *)tmp);
+		
+		// Send message to CRT
+		send_message(11, (VOID *)output);
+	}
 }
 
 void printProcessesByState(UINT8 state)

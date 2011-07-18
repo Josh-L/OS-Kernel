@@ -50,7 +50,6 @@ int main()
 		g_proc_table[i].m_state = 1;
 		g_proc_table[i].m_entry = g_test_proc[i].entry;
 		g_proc_table[i].m_stack = g_free_mem = g_free_mem + g_test_proc[i].sz_stack;
-		g_proc_table[i].commandRegister[0] = 0;
 		g_proc_table[i].i_process = 0;
 		g_proc_table[i].sys_process = 0;
 	}
@@ -61,17 +60,15 @@ int main()
 	g_proc_table[i].m_state = 1;
 	g_proc_table[i].m_entry = null_process;
 	g_proc_table[i].m_stack = g_free_mem = g_free_mem + 1024;
-	g_proc_table[i].commandRegister[0] = 0;
 	g_proc_table[i].i_process = 0;
 	g_proc_table[i].sys_process = 1;
-
+	
 	// KCD
 	g_proc_table[i+1].m_process_ID = 10;
 	g_proc_table[i+1].m_priority = 0;
 	g_proc_table[i+1].m_state = 1;
 	g_proc_table[i+1].m_entry = kcd;
 	g_proc_table[i+1].m_stack = g_free_mem = g_free_mem + 1024;
-	g_proc_table[i+1].commandRegister[0] = 0;
 	g_proc_table[i+1].i_process = 0;
 	g_proc_table[i+1].sys_process = 1;
 	
@@ -81,7 +78,6 @@ int main()
 	g_proc_table[i+2].m_state = 1;
 	g_proc_table[i+2].m_entry = crt;
 	g_proc_table[i+2].m_stack = g_free_mem = g_free_mem + 1024;
-	g_proc_table[i+2].commandRegister[0] = 0;
 	g_proc_table[i+2].i_process = 0;
 	g_proc_table[i+2].sys_process = 1;
 	
@@ -91,7 +87,6 @@ int main()
 	g_proc_table[i+3].m_state = 1;
 	g_proc_table[i+3].m_entry = uart;
 	g_proc_table[i+3].m_stack = g_free_mem = g_free_mem + 1024;
-	g_proc_table[i+3].commandRegister[0] = 0;
 	g_proc_table[i+3].i_process = 1;
 	g_proc_table[i+3].sys_process = 0;
 	
@@ -101,10 +96,27 @@ int main()
 	g_proc_table[i+4].m_state = 1;
 	g_proc_table[i+4].m_entry = timer;
 	g_proc_table[i+4].m_stack = g_free_mem = g_free_mem + 1024;
-	g_proc_table[i+4].commandRegister[0] = 0;
 	g_proc_table[i+4].i_process = 1;
 	g_proc_table[i+4].sys_process = 0;
-
+	
+	// Change priority process
+	g_proc_table[i+5].m_process_ID = 14;
+	g_proc_table[i+5].m_priority = 0;
+	g_proc_table[i+5].m_state = 1;
+	g_proc_table[i+5].m_entry = change_priority;
+	g_proc_table[i+5].m_stack = g_free_mem = g_free_mem + 1024;
+	g_proc_table[i+5].i_process = 0;
+	g_proc_table[i+5].sys_process = 1;
+	
+	// Wall clock process
+	g_proc_table[i+6].m_process_ID = 15;
+	g_proc_table[i+6].m_priority = 0;
+	g_proc_table[i+6].m_state = 1;
+	g_proc_table[i+6].m_entry = wall_clock;
+	g_proc_table[i+6].m_stack = g_free_mem = g_free_mem + 1024;
+	g_proc_table[i+6].i_process = 0;
+	g_proc_table[i+6].sys_process = 1;
+	
 	sys_init();
 
     return 0;

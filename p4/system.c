@@ -133,6 +133,11 @@ VOID sys_init()
 	outputBuffer.front = 0;
 	outputBuffer.back = 0;
 	outputBuffer.num_slots = 2000;
+	for(i = 0; i < outputBuffer.num_slots; i++)
+	{
+		outputBufferSlots[i].data = 0;
+		outputBufferSlots[i].next = 0;
+	}
 	
 	// Clock and display variable initialization
 	g_clock_counter = 0;
@@ -173,6 +178,10 @@ VOID sys_init()
 	for(i = 0; i < NUM_PROCESSES; i++)
 	{
 		// Initialize message box and message waiting data structures
+		g_proc_table[i].msg_queue.front = 0;
+		g_proc_table[i].msg_queue.back = 0;
+		g_proc_table[i].msg_queue.num_slots = NUM_PROCESSES;
+		
 		UINT8 k = 0;
 		for(k = 0; k < NUM_PROCESSES; k++)
 		{
@@ -180,17 +189,13 @@ VOID sys_init()
 			g_proc_table[i].msg_queue_slots[k].next = 0;
 		}
 		
-		g_proc_table[i].msg_queue.front = 0;
-		g_proc_table[i].msg_queue.back = 0;
-		g_proc_table[i].msg_queue.num_slots = NUM_PROCESSES;
-		
 		// Setup a blank queue slot for this process
 		g_queue_slots[i].data = 0;
 		g_queue_slots[i].next = 0;
 		g_mem_blocking_queue_slots[i].data = 0;
 		g_mem_blocking_queue_slots[i].next = 0;
 		
-		// Push process into proper priority queue
+		// Push process into proper priority queue if it's not an i-process
 		if(g_proc_table[i].i_process == 0){
 			push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
 		}
@@ -219,12 +224,6 @@ VOID sys_init()
 		rtx_dbug_outs(", Entry := ");
 		printHexAddress(g_proc_table[i].m_entry);
 		rtx_dbug_outs("\r\n\r\n");*/
-	}
-	
-	for(i = 0; i < outputBuffer.num_slots; i++)
-	{
-		outputBufferSlots[i].data = 0;
-		outputBufferSlots[i].next = 0;
 	}
 	
 	//Save kernel stack location
@@ -506,7 +505,11 @@ VOID receive_message_trap_handler()
 			g_current_process->m_state = 3;
 			release_processor();
 			message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg);
-			*sender_ID = msg->sender_id;
+			
+			if(sender_ID != 0)
+			{
+				*sender_ID = msg->sender_id;
+			}
 			msg->msg_text = msg + 4;
 		}
 		//If it's an i-process, then don't block, insert NULL values and continue
@@ -520,7 +523,10 @@ VOID receive_message_trap_handler()
 	else
 	{
 		msg->msg_text = msg + 4;
-		*sender_ID = msg->sender_id;
+		if(sender_ID != 0)
+		{
+			*sender_ID = msg->sender_id;
+		}
 	}
 	
 	g_asmBridge = msg;
