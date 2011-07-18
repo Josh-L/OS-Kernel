@@ -117,6 +117,33 @@ int main()
 	g_proc_table[i+6].i_process = 0;
 	g_proc_table[i+6].sys_process = 1;
 	
+	//proc_a
+	g_proc_table[i+7].m_process_ID = 7;
+	g_proc_table[i+7].m_priority = 0;
+	g_proc_table[i+7].m_state = 1;
+	g_proc_table[i+7].m_entry = proc_a;
+	g_proc_table[i+7].m_stack = g_free_mem = g_free_mem + 1024;
+	g_proc_table[i+7].i_process = 0;
+	g_proc_table[i+7].sys_process = 1;
+	
+	//proc_b
+	g_proc_table[i+8].m_process_ID = 8;
+	g_proc_table[i+8].m_priority = 0;
+	g_proc_table[i+8].m_state = 1;
+	g_proc_table[i+8].m_entry = proc_b;
+	g_proc_table[i+8].m_stack = g_free_mem = g_free_mem + 1024;
+	g_proc_table[i+8].i_process = 0;
+	g_proc_table[i+8].sys_process = 1;
+	
+	//proc_c
+	g_proc_table[i+9].m_process_ID = 9;
+	g_proc_table[i+9].m_priority = 0;
+	g_proc_table[i+9].m_state = 1;
+	g_proc_table[i+9].m_entry = proc_c;
+	g_proc_table[i+9].m_stack = g_free_mem = g_free_mem + 1024;
+	g_proc_table[i+9].i_process = 0;
+	g_proc_table[i+9].sys_process = 1;
+	
 	sys_init();
 
     return 0;

@@ -11,7 +11,7 @@
 #define NUM_MEM_BLKS 50
 #define NUM_SYS_MEM_BLKS 20
 
-#define NUM_PROCESSES 13
+#define NUM_PROCESSES 16
 #define NUM_TEST_PROCS 6
 
 #define	REGISTERED_COMMANDS 10
@@ -127,4 +127,10 @@ VOID	change_priority();
 VOID	uart();
 VOID	timer();
 
+//stress test processes
+VOID	proc_a();
+VOID	proc_b();
+VOID	proc_c();
+
+void strCopy(CHAR * from, CHAR * to);
 #endif
