@@ -19,10 +19,13 @@ release_proc_trap:
 	move.l %a4, -(%a7)
 	move.l %a5, -(%a7)
 	move.l %a6, -(%a7)
+	move.l g_asmBridge, -(%a7)
 	
 	move.l %a7,g_asmBridge
 	jsr	scheduler
 	move.l g_asmBridge, %a7
+	
+	move.l (%a7)+, g_asmBridge
 	move.l (%a7)+, %a6
 	move.l (%a7)+, %a5
 	move.l (%a7)+, %a4

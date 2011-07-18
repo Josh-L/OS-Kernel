@@ -8,8 +8,8 @@
 #define NUM_PRIORITIES		5
 
 #define MEM_BLK_SIZE 2048
-#define NUM_MEM_BLKS 32
-#define NUM_SYS_MEM_BLKS 10
+#define NUM_MEM_BLKS 255
+#define NUM_SYS_MEM_BLKS 225
 
 #define NUM_PROCESSES 11
 #define NUM_TEST_PROCS 6
@@ -75,7 +75,7 @@ struct s_pcb
     VOID    (*m_entry)();
 	struct	s_message_queue msg_queue;
 	struct	s_message_queue_item msg_queue_slots[NUM_PROCESSES];
-	char	commandRegistration[20];
+	char	commandRegister[20];
 	UINT8	i_process; // 0 means is not, 1 means it is
 	UINT8	sys_process; // 0 means is not, 1 means it is
 };
@@ -95,7 +95,7 @@ struct s_pcb_queue
 
 //Function prototypes
 VOID	sys_init();
-VOID	scheduler( VOID );
+VOID	scheduler(VOID);
 VOID	schedule_iproc();
 int		release_processor();
 int		send_message(int process_ID, VOID * MessageEnvelope);
@@ -110,7 +110,7 @@ int		release_memory_block(VOID * memory_block);
 SINT8	message_push(struct s_message_queue * queue, struct s_message_queue_item slots[], struct s_message * new_back);
 SINT8	message_pop(struct s_message_queue * queue, struct s_message_queue_item slots[], struct s_message ** catcher);
 int		delayed_send(int process_ID, void * MessageEnvelope, int delay);
-SINT32	ColdFire_vbr_init( VOID );
+SINT32	ColdFire_vbr_init(VOID);
 VOID	c_serial_handler();
 CHAR    buffer_pop(struct s_char_queue * queue, struct s_char_queue_item slots[]);
 SINT8   buffer_push(struct s_char_queue * queue, struct s_char_queue_item slots[], char c);
@@ -123,15 +123,5 @@ VOID	crt();
 // i-processes
 VOID	uart();
 VOID	timer();
-
-/*
-//System Proc Init Array
-struct s_pcb g_sysproc_table[] =
-{
-	{NULL_PROC_ID, 4, 1, 1024, null_process},
-	{UART_ID, 0, 1, 1024, test_proc_1},
-	{TIMER_ID, 0, 1, 1024, test_proc_2}
-};
-*/
 
 #endif

@@ -69,7 +69,6 @@ void uart()
 			// If we actually get a message
 			if(tmp != 0)
 			{
-				tmp->msg_text = tmp + 4;
 				// Add message text to the output buffer
 				while(tmp->msg_text[0] != 0)
 				{
@@ -210,18 +209,16 @@ void kcd()
 		{
 			// Receive character in message
 			input = (struct s_message *)receive_message(&sender_ID);
-			input->msg_text = input + 4;
-			
 			// Register command
 			if(input->type == 2)
 			{
-				rtx_dbug_outs("Command registering message received.\n\r");
 				UINT8 i;
 				for(i = 0; i < NUM_PROCESSES; i++)
 				{
 					if(g_proc_table[i].m_process_ID == sender_ID)
 					{
-						
+						strCopy(input->msg_text, &g_proc_table[i].commandRegister[0]);
+						break;
 					}
 				}
 			}
@@ -556,7 +553,58 @@ void kcd()
 			}
 			else
 			{
+				// Default to invalid
 				result = "Invalid command.\n\r";
+				
+				// Check process registered commands
+				UINT8 i;
+				UINT8 j;
+				UINT8 matched = 0;
+				struct s_message * fwd;
+				for(i = 0; i < NUM_PROCESSES; i++)
+				{
+					for(j = 0; j < 20; j++)
+					{
+						if(g_proc_table[i].commandRegister[j] == 0)
+						{
+							break;
+						}
+						else if(g_proc_table[i].commandRegister[j] == inputBuffer[j+1])
+						{
+							matched = 1;
+						}
+						else
+						{
+							matched = 0;
+							break;
+						}
+					}
+					if(matched == 1)
+					{
+						// Make sure there's a space, or end of command
+						if(inputBuffer[j+1] == 0)
+						{
+							/*result = "\0";
+							fwd = (struct s_message *)request_memory_block;
+							fwd->type = 3;
+							fwd->msg_text = fwd + 4;
+							fwd->msg_text[0] = 0;
+							send_message(g_proc_table[i].m_process_ID, (VOID *)fwd);*/
+							break;
+						}
+						else if(inputBuffer[j+1] == ' ')
+						{
+							/*result = "\0";
+							fwd = (struct s_message *)request_memory_block;
+							fwd->type = 3;
+							fwd->msg_text = fwd + 4;
+							strCopy(&inputBuffer[j+2], fwd->msg_text);
+							send_message(g_proc_table[i].m_process_ID, (VOID *)fwd);*/
+							break;
+						}
+						matched = 0;
+					}
+				}
 			}
 		}
 		else
@@ -564,12 +612,15 @@ void kcd()
 			result = "Invalid command.\n\r";
 		}
 		
-		inputBufferIndex = 0;
-		output = (struct s_message *)request_memory_block();
-		output->msg_text = output + 4;
-		strCopy(result, output->msg_text);
-		output->type = 3;
-		send_message(11, (VOID *)output);
+		if(result[0] != 0)
+		{
+			inputBufferIndex = 0;
+			output = (struct s_message *)request_memory_block();
+			output->msg_text = output + 4;
+			strCopy(result, output->msg_text);
+			output->type = 3;
+			send_message(11, (VOID *)output);
+		}
 	}
 }
 
@@ -586,8 +637,6 @@ void crt()
 		// If we get the correct message type
         if(msg->type == 3)
         {
-			// Reset the new message's pointer to be at 64th byte, if a user process even knows how to get here
-			msg->msg_text = msg + 4;
 			// Send message to UART to output the text
 			out = (struct s_message *)request_memory_block();
 			out->type = 0;

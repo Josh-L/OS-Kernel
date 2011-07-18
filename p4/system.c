@@ -19,7 +19,6 @@ struct s_pcb_queue_item 	g_mem_blocking_queue_slots[NUM_PROCESSES];
 
 UINT32						*g_kernelStack; // Pointer to kernel stack
 UINT32						g_asmBridge;
-UINT32						g_asmBridge2;
 
 extern struct s_pcb 		g_proc_table[NUM_PROCESSES];
 extern  UINT32				g_free_mem; // Keep track of the beginning of the free memory region
@@ -203,7 +202,7 @@ VOID sys_init()
 		*addr = 0x40000000;
 		
 		// Push blank data and address register values to the stack to restore on first run
-		for(k = 0; k < 15; k++)
+		for(k = 0; k < 16; k++)
 		{
 			addr--;
 			*addr = 0x00000000;
@@ -240,6 +239,7 @@ VOID sys_init()
 	asm("move.l g_asmBridge, %a7"); // Load the selected process' stack pointer into A7
 	
 	// Pop blank registers for first process and then RTE
+	asm("move.l (%a7)+, g_asmBridge");
 	asm("move.l (%a7)+, %a6");
 	asm("move.l (%a7)+, %a5");
 	asm("move.l (%a7)+, %a4");
@@ -455,9 +455,9 @@ VOID * receive_message(int * sender_ID)
 	asm("TRAP #6");
 	
 	//Take return value from d1
-	asm("move.l %d1, g_asmBridge2");
+	asm("move.l %d1, g_asmBridge");
 	
-	returnVal = g_asmBridge2;
+	returnVal = g_asmBridge;
 	
 	asm("move.l (%a7)+, %a6");
 	asm("move.l (%a7)+, %a5");
@@ -506,6 +506,8 @@ VOID receive_message_trap_handler()
 			g_current_process->m_state = 3;
 			release_processor();
 			message_pop(&g_current_process->msg_queue, g_current_process->msg_queue_slots, &msg);
+			*sender_ID = msg->sender_id;
+			msg->msg_text = msg + 4;
 		}
 		//If it's an i-process, then don't block, insert NULL values and continue
 		else
@@ -517,11 +519,12 @@ VOID receive_message_trap_handler()
 	// If we have a message, then receive it
 	else
 	{
+		msg->msg_text = msg + 4;
 		*sender_ID = msg->sender_id;
 	}
 	
-	g_asmBridge2 = msg;
-	asm("move.l g_asmBridge2, %d1");
+	g_asmBridge = msg;
+	asm("move.l g_asmBridge, %d1");
 }
 
 SINT8 pop(struct s_pcb_queue * queue, struct s_pcb_queue_item slots[], struct s_pcb ** catcher)
@@ -919,6 +922,12 @@ VOID request_memory_block_trap_handler()
 			{
 				gp_mem_pool_lookup[i] = 1;
 				freeBlock = (VOID *)gp_mem_pool_list[i];
+				/*rtx_dbug_outs("REQUEST\n\rpid: ");
+				printHexAddress(g_current_process->m_process_ID);
+				rtx_dbug_outs("\n\rAddress: ");
+				printHexAddress(gp_mem_pool_list[i]);
+				rtx_dbug_outs("\n\r");*/
+				
 				break;
 			}
 		}
@@ -988,6 +997,12 @@ VOID release_memory_block_trap_handler()
     UINT8 i;
 	UINT8 j;
 	
+	/*rtx_dbug_outs("RELEASE\n\rpid: ");
+	printHexAddress(g_current_process->m_process_ID);
+	rtx_dbug_outs("\n\rAddress: ");
+	printHexAddress(memory_block);
+	rtx_dbug_outs("\n\r");*/
+	
 	for(i = 0; i < NUM_MEM_BLKS; i++)
 	{
 		// If this is a valid memory block
@@ -997,7 +1012,7 @@ VOID release_memory_block_trap_handler()
 			gp_mem_pool_lookup[i] = 0;
 			
 			// If this is a regular process
-			if(g_current_process->i_process == 0 && g_current_process->sys_process == 0)
+			if(g_current_process->i_process == 0 && g_current_process->sys_process == 0 && i >= NUM_SYS_MEM_BLKS)
 			{
 				/*
 				We must iterate through the processes blocked waiting for memory blocks, and unblock (set to ready)

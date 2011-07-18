@@ -1,5 +1,6 @@
 #include "rtx_test.h"
 #include "dbug.h"
+#include "system.h"
 
 //g_test_fixture.
 //g_test_fixture.release_processor();
@@ -13,9 +14,22 @@
 
 int test_results;
 
-void test1()
+void strCopy(CHAR * from, CHAR * to)
 {
-    int prio;
+	UINT32 i;
+	
+	*to = *from;
+	while(*from != '\0')
+	{
+		from += 1;
+		to += 1;
+		*to = *from;
+	}
+}
+
+void test1()
+{	
+    /*int prio;
     g_test_fixture.set_process_priority(1, 1);
     g_test_fixture.set_process_priority(2, 2);
     prio = g_test_fixture.get_process_priority(2);
@@ -34,7 +48,7 @@ void test1()
     }
     
     g_test_fixture.set_process_priority(1, 3);
-    g_test_fixture.set_process_priority(2, 3);
+    g_test_fixture.set_process_priority(2, 3);*/
     
     while (1) 
     {
@@ -44,7 +58,7 @@ void test1()
 
 void test2()
 {
-    int i;
+    /*int i;
     int * msg_type;
     *msg_type = -1;
 	VOID * msg = g_test_fixture.receive_message(&i);
@@ -87,7 +101,7 @@ void test2()
         rtx_dbug_outs((CHAR *)"S201G012_test: 0/2 tests FAIL\n\r");
         rtx_dbug_outs((CHAR *)"S201G012_test: END\n\r");
         #endif
-    }
+    }*/
     
     while (1)
     {
@@ -98,11 +112,11 @@ void test2()
 
 void test3()
 {
-    int * msg_type;
+    /*int * msg_type;
     VOID * msg = g_test_fixture.request_memory_block();
     msg_type = (int *)(msg + 8);
     *msg_type = 99;
-    g_test_fixture.send_message(2, msg);
+    g_test_fixture.send_message(2, msg);*/
     while (1) 
     {
 		g_test_fixture.release_processor();
@@ -111,9 +125,21 @@ void test3()
 
 void test4()
 {
+	int i;
+	struct s_message * tmp;
+	/*tmp = g_test_fixture.request_memory_block();
+	tmp->type = 2;
+	tmp->msg_text = tmp + 4;
+	strCopy("XYZ", tmp->msg_text);
+	g_test_fixture.send_message(10, (VOID *)tmp);*/
+	
     while (1) 
     {
-		g_test_fixture.release_processor();
+		tmp = (struct s_message *)g_test_fixture.receive_message(&i);
+		rtx_dbug_outs("GOT MESSAGE\n\r");
+		rtx_dbug_outs(tmp->msg_text);
+		rtx_dbug_outs("\n\r");
+		g_test_fixture.release_memory_block((VOID *)tmp);
     }
 }
 
