@@ -1,5 +1,4 @@
 #include "system.h"
-#include "Hex_to_ASCII.h"
 
 // Variables used in system.c, needed for reference by i_proc.c
 extern struct s_pcb 			g_proc_table[NUM_PROCESSES];
@@ -9,7 +8,7 @@ extern struct s_pcb				*g_current_process;
 extern struct s_pcb_queue		g_priority_queues[NUM_PRIORITIES];
 extern struct s_pcb_queue_item 	g_queue_slots[NUM_PROCESSES]; // Have an array of ready queue slots
 
-// Variables for i_proc.s that we delcared in system.c so they could be initialized in sys_init
+// Variables for i-processes that we delcared in system.c so they could be initialized in sys_init
 extern struct delayed_send_request send_reqs[NUM_DELAYED_SLOTS];
 extern struct s_char_queue				outputBuffer;
 extern struct s_char_queue_item			outputBufferSlots[2000];
@@ -127,10 +126,10 @@ void timer()
 					message_push(&g_proc_table[send_reqs[i].process_slot].msg_queue, g_proc_table[send_reqs[i].process_slot].msg_queue_slots, (struct s_message *)send_reqs[i].envelope);
 					
 					// If receiving process is currently blocking on message from sender, unblock and push to ready queue
-					if(g_proc_table[i].m_state == 3)
+					if(g_proc_table[send_reqs[i].process_slot].m_state == 3)
 					{
-						g_proc_table[i].m_state = 1;
-						push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
+						g_proc_table[send_reqs[i].process_slot].m_state = 1;
+						push(&g_priority_queues[g_proc_table[send_reqs[i].process_slot].m_priority], g_queue_slots, &g_proc_table[send_reqs[i].process_slot]);
 					}
 					
 					// Free up the delayed send space

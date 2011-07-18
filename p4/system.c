@@ -1190,7 +1190,7 @@ SINT8 message_pop(struct s_message_queue * queue, struct s_message_queue_item sl
 }
 
 SINT8 message_push(struct s_message_queue * queue, struct s_message_queue_item slots[], struct s_message * new_back)
-{
+{	
 	// Find a free node to use
 	UINT8 i = 0;
 	for (i = 0; i < queue->num_slots; i++)

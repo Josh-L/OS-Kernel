@@ -124,20 +124,18 @@ void proc_c()
 				// To hibernate for 10 seconds, delay send itself a message
 				q = (struct s_message *)request_memory_block();
 				q->type = 5; //Message Type of 5 is "WakeUp10"
-				printHexAddress((VOID *) q);
-				rtx_dbug_outs((CHAR *)"\r\n");
 				delayed_send(9, (VOID *)q, 10000);
 				
 				rtx_dbug_outs((CHAR *)"Process C hibernating.\r\n");
 				
 				while(1)
-				{	
+				{
 					p = (struct s_message *)receive_message(0);
 					
 					// Check if received message is WakeUp10, signalling hibernation of 10 seconds is over.
 					if(p->type == 5)
 					{
-						//break if true
+						// Break if we get a wake-up message
 						rtx_dbug_outs((CHAR *)"Process C got wake-up message.\r\n");
 						break;
 					}
