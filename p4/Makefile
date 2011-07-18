@@ -8,7 +8,7 @@
 
 CC=m68k-elf-gcc
 CXX=m68k-elf-g++
-CFLAGS= -Wall -m5307 -pipe -nostdlib -D_DEBUG -D_DEBUG_HOTKEYS
+CFLAGS= -Wall -m5307 -pipe -nostdlib -D_DEBUG -D_DEBUG_HOTKEYS -D_CFSERVER_
 LD=m68k-elf-gcc
 AS=m68k-elf-as
 AR=m68k-elf-ar
@@ -22,7 +22,7 @@ LDFLAGS_RTX_TEST = -Trtx_test.ld -Wl,-Map=rtx_test.map
 
 RTX_OBJS = system.o dbug.o main_rtx.o i_proc.o Hex_to_ASCII.o rtx_test_stress.o
 RTX_LOADER_OBJS = dbug.o rtx_loader.o
-RTX_TEST_DUMMY_OBJS = dbug.o rtx_test_dummy.o
+RTX_TEST_DUMMY_OBJS = dbug.o rtx_tezt.o
 
 all: mdummy.s19 
 

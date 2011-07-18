@@ -1083,7 +1083,7 @@ VOID delayed_send_trap_handler()
 	}
 	else
 	{	
-		struct s_message * new_message = messageEnvelope;
+		struct s_message * new_message = (struct s_message *)messageEnvelope;
 		new_message->sender_id = g_current_process->m_process_ID;
 		new_message->dest_id = process_ID;
 		
@@ -1091,7 +1091,7 @@ VOID delayed_send_trap_handler()
 		for(i = 0; i < NUM_PROCESSES; i++)
 		{
 			if(g_proc_table[i].m_process_ID == process_ID)
-			{	
+			{
 				send_reqs[i].envelope = (VOID *)new_message;
 				send_reqs[i].exp = delay;
 				send_reqs[i].process_slot = (int)i;

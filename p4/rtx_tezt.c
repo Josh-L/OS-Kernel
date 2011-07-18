@@ -36,7 +36,7 @@ void test1()
     g_test_fixture.set_process_priority(1, 3);
     g_test_fixture.set_process_priority(2, 3);
     
-    while (1) 
+    while(1) 
     {
 		g_test_fixture.release_processor();
 	}
@@ -89,7 +89,7 @@ void test2()
         #endif
     }
     
-    while (1)
+    while(1)
     {
 		g_test_fixture.release_processor();
 	}	
@@ -103,15 +103,15 @@ void test3()
     msg_type = (int *)(msg + 8);
     *msg_type = 99;
     g_test_fixture.send_message(2, msg);
-    while (1) 
+    while(1) 
     {
 		g_test_fixture.release_processor();
     }
 }
 
 void test4()
-{	
-    while (1) 
+{
+    while(1)
     {
 		g_test_fixture.release_processor();
     }
@@ -119,7 +119,7 @@ void test4()
 
 void test5()
 {
-    while (1) 
+    while(1) 
     {
 		g_test_fixture.release_processor();
     }
@@ -127,7 +127,7 @@ void test5()
 
 void test6()
 {
-    while (1)
+    while(1)
     {
         g_test_fixture.release_processor();
     }

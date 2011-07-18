@@ -114,6 +114,7 @@ void timer()
 	{
 		temp_counter = g_clock_counter;
 		g_clock_counter = 0;
+		
         //Update pending delay request message expiration counters
 		for(i = 0; i < NUM_DELAYED_SLOTS; i++)
 		{
@@ -132,7 +133,6 @@ void timer()
 						g_proc_table[i].m_state = 1;
 						push(&g_priority_queues[g_proc_table[i].m_priority], g_queue_slots, &g_proc_table[i]);
 					}
-					
 					
 					// Free up the delayed send space
 					send_reqs[i].envelope = 0;
@@ -242,7 +242,7 @@ void kcd()
 				// Save character
 				c = input->msg_text[0];
 				
-				// If this command is a debug character
+				// If this character is a hotkey
 #ifdef _DEBUG_HOTKEYS
 				if(c == '-')
 				{
