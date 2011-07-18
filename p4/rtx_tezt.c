@@ -127,11 +127,11 @@ void test4()
 {
 	int i;
 	struct s_message * tmp;
-	/*tmp = g_test_fixture.request_memory_block();
+	tmp = g_test_fixture.request_memory_block();
 	tmp->type = 2;
 	tmp->msg_text = tmp + 4;
 	strCopy("XYZ", tmp->msg_text);
-	g_test_fixture.send_message(10, (VOID *)tmp);*/
+	g_test_fixture.send_message(10, (VOID *)tmp);
 	
     while (1) 
     {

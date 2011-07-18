@@ -184,8 +184,8 @@ void timer()
                 {
                     msg->type = 3;
                     msg->msg_text = msg + 4;
+					strCopy(msg_text, msg->msg_text);
                     send_message(11, (VOID *)msg);
-
                 }
             }
         }
@@ -372,11 +372,6 @@ void kcd()
 		// Parsing the command
 		inputBufferIndex = 0;
 		
-		if(inputBuffer[0] == 0)
-		{
-			rtx_dbug_outs("Problem.\n\r");
-		}
-		
 		char * result;
 		
 		if(inputBuffer[inputBufferIndex] == '%')
@@ -560,7 +555,6 @@ void kcd()
 				UINT8 i;
 				UINT8 j;
 				UINT8 matched = 0;
-				struct s_message * fwd;
 				for(i = 0; i < NUM_PROCESSES; i++)
 				{
 					for(j = 0; j < 20; j++)
@@ -584,22 +578,22 @@ void kcd()
 						// Make sure there's a space, or end of command
 						if(inputBuffer[j+1] == 0)
 						{
-							/*result = "\0";
-							fwd = (struct s_message *)request_memory_block;
+							result = "\0";
+							struct s_message * fwd = (struct s_message *)request_memory_block;
 							fwd->type = 3;
 							fwd->msg_text = fwd + 4;
 							fwd->msg_text[0] = 0;
-							send_message(g_proc_table[i].m_process_ID, (VOID *)fwd);*/
+							send_message(g_proc_table[i].m_process_ID, (VOID *)fwd);
 							break;
 						}
 						else if(inputBuffer[j+1] == ' ')
 						{
-							/*result = "\0";
-							fwd = (struct s_message *)request_memory_block;
+							result = "\0";
+							struct s_message * fwd = (struct s_message *)request_memory_block;
 							fwd->type = 3;
 							fwd->msg_text = fwd + 4;
 							strCopy(&inputBuffer[j+2], fwd->msg_text);
-							send_message(g_proc_table[i].m_process_ID, (VOID *)fwd);*/
+							send_message(g_proc_table[i].m_process_ID, (VOID *)fwd);
 							break;
 						}
 						matched = 0;
