@@ -36,6 +36,7 @@ void proc_a()
 	}
 	
 	num = 0;
+	
 	while(1)
 	{
 		//rtx_dbug_outs((CHAR *)"Process A sending messages to Process B.\r\n");

@@ -15,7 +15,7 @@ int test_results;
 
 void test1()
 {	
-    int prio;
+    /*int prio;
     g_test_fixture.set_process_priority(1, 1);
     g_test_fixture.set_process_priority(2, 2);
     prio = g_test_fixture.get_process_priority(2);
@@ -34,7 +34,7 @@ void test1()
     }
     
     g_test_fixture.set_process_priority(1, 3);
-    g_test_fixture.set_process_priority(2, 3);
+    g_test_fixture.set_process_priority(2, 3);*/
     
     while(1) 
     {
@@ -44,7 +44,7 @@ void test1()
 
 void test2()
 {
-    int i;
+    /*int i;
     int * msg_type;
     *msg_type = -1;
 	VOID * msg = g_test_fixture.receive_message(&i);
@@ -87,7 +87,7 @@ void test2()
         rtx_dbug_outs((CHAR *)"S201G012_test: 0/2 tests FAIL\n\r");
         rtx_dbug_outs((CHAR *)"S201G012_test: END\n\r");
         #endif
-    }
+    }*/
     
     while(1)
     {
@@ -98,11 +98,11 @@ void test2()
 
 void test3()
 {
-    int * msg_type;
+    /*int * msg_type;
     VOID * msg = g_test_fixture.request_memory_block();
     msg_type = (int *)(msg + 8);
     *msg_type = 99;
-    g_test_fixture.send_message(2, msg);
+    g_test_fixture.send_message(2, msg);*/
     while(1) 
     {
 		g_test_fixture.release_processor();

@@ -294,7 +294,6 @@ VOID scheduler( VOID )
 					break;
 				}
 			}
-			
 		}
 	}
 	else
@@ -407,7 +406,6 @@ VOID send_message_trap_handler()
 				if(g_current_process->m_priority > g_proc_table[i].m_priority && g_current_process->i_process == 0){
 					release_processor();
 				}
-			
 			}
 			break;
 		}
@@ -1018,7 +1016,7 @@ VOID release_memory_block_trap_handler()
 			gp_mem_pool_lookup[i] = 0;
 			
 			// If this is a regular process
-			if(g_current_process->i_process == 0 && g_current_process->sys_process == 0 && i >= NUM_SYS_MEM_BLKS)
+			if(i >= NUM_SYS_MEM_BLKS)
 			{
 				/*
 				We must iterate through the processes blocked waiting for memory blocks, and unblock (set to ready)
